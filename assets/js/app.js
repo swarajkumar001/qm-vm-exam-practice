@@ -1855,13 +1855,40 @@
     return pdfLibPromise;
   }
 
+  var pdfProgress = {};
   function getPdf(deck) {
     if (!pdfDocs[deck.id]) {
       pdfDocs[deck.id] = loadPdfJs()
-        .then(function (lib) { return lib.getDocument({ url: deck.file }).promise; })
+        .then(function (lib) {
+          // One streamed download instead of many small range requests: on GitHub Pages each
+          // range request is a separate round trip, which made the first slide take ~20s.
+          var task = lib.getDocument({ url: deck.file, disableRange: true, disableAutoFetch: true });
+          task.onProgress = function (p) {
+            var total = p.total || deck.bytes || 0;
+            pdfProgress[deck.id] = total ? Math.min(99, Math.round((p.loaded / total) * 100)) : null;
+            showLoadProgress(deck.id);
+          };
+          return task.promise;
+        })
         .catch(function (e) { delete pdfDocs[deck.id]; throw e; });
     }
     return pdfDocs[deck.id];
+  }
+
+  function showLoadProgress(deckId) {
+    var el = document.getElementById('pvLoadText');
+    var v = S.revViewer;
+    if (!el || !v || v.deck !== deckId) return;
+    var p = pdfProgress[deckId];
+    el.textContent = p == null ? 'Loading slides…' : 'Loading slides… ' + p + '%';
+  }
+
+  /** Warm the renderer and the deck in the background so "View slides" opens instantly. */
+  function prefetchSlides(deck) {
+    if (!deck) return;
+    var c = navigator.connection;
+    if (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))) return; // respect data saver / very slow links
+    getPdf(deck).catch(function () { /* the viewer reports errors when it is opened */ });
   }
 
   function viewerDeck() {
@@ -1902,7 +1929,7 @@
       ? '<div class="viewer-frame"><iframe title="' + escapeHtml(deck.title) + ' slides, page ' + v.page + '" src="' + escapeHtml(src + '&view=FitH&navpanes=0') + '"></iframe></div>' +
         '<p class="viewer-note small muted">' + icon('i-alert', 'ic-sm') + ' Showing the browser’s PDF viewer because the slide renderer could not load. Use “New tab” or “Download” if nothing appears.</p>'
       : '<div class="pv-stage" id="pvStage" tabindex="0" aria-label="Slide ' + v.page + ' of ' + n + '. Use arrow keys to change slides.">' +
-        '<div class="pv-canvas" id="pvCanvas"></div><div class="pv-loading" aria-hidden="true"><div class="spinner"></div></div>' +
+        '<div class="pv-canvas" id="pvCanvas"></div><div class="pv-loading" role="status"><div class="spinner" aria-hidden="true"></div><span id="pvLoadText">Loading slides…</span></div>' +
         '<p class="pv-hint" aria-hidden="true">Swipe to change slides · pinch to zoom · turn your phone sideways for a bigger slide</p></div>';
     box.innerHTML = '<section class="viewer accent-' + escapeHtml(deck.accent || 'violet') + '" aria-label="' + escapeHtml(deck.title) + ' slides">' + bar + stage + '</section>';
     markViewingSection();
@@ -1940,6 +1967,7 @@
     if (!stage || !v || !deck) return;
     var token = ++PV.token;
     stage.classList.add('is-loading');
+    showLoadProgress(deck.id);
     getPdf(deck).then(function (pdf) {
       if (token !== PV.token) return null;
       if (deck.pdfPages !== pdf.numPages) { deck.pdfPages = pdf.numPages; updateViewerChrome(); }
@@ -2190,6 +2218,11 @@
 
     box.innerHTML = searchBar + '<div class="rev-layout' + (S.revSplit ? ' compact' : '') + '">' + toc + '<div class="rev-main">' + (empty || (overview + secHtml + formulaHtml + conceptHtml)) + '</div></div>';
     markViewingSection();
+    // desktop: quietly warm this deck's slides a moment after the notes appear
+    if (isWideScreen() && !pdfDocs[deck.id]) {
+      clearTimeout(PV.prefetchTimer);
+      PV.prefetchTimer = setTimeout(function () { if (S.route.name === 'revision' && S.revDeck === deck.id) prefetchSlides(deck); }, 1200);
+    }
   }
 
   function updateRevisionProgress() {
@@ -2648,6 +2681,15 @@
     app.addEventListener('click', onClick);
     app.addEventListener('change', onChange);
     app.addEventListener('input', onInput);
+    // intent prefetch: hovering / focusing / touching a "View" button starts loading that deck's slides
+    var warm = function (e) {
+      var b = e.target && e.target.closest && e.target.closest('[data-action="rev-view"]');
+      if (!b || !S.rev) return;
+      prefetchSlides(S.rev.decks.filter(function (d) { return d.id === b.getAttribute('data-deck'); })[0]);
+    };
+    app.addEventListener('pointerover', warm);
+    app.addEventListener('focusin', warm);
+    app.addEventListener('touchstart', warm, { passive: true });
     // remember which revision sections the user collapsed ('toggle' does not bubble, so capture it)
     app.addEventListener('toggle', function (e) {
       var d = e.target;
