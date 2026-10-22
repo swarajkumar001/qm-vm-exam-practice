@@ -649,6 +649,52 @@ details.disclosure summary::marker { color: var(--muted); }
 .viewer-frame { flex: 1; min-height: 0; }
 .viewer-frame iframe { height: 100% !important; }
 
+/* Slide viewer (PDF.js canvas) */
+.viewer { container-type: inline-size; }
+.viewer .viewer-bar { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; padding: .45rem .6rem; border-bottom: 1px solid var(--border); }
+.viewer .viewer-title { display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1 1 120px; color: var(--dink, var(--violet)); }
+.viewer .viewer-title strong { color: var(--ink); font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-pager, .pv-zoom, .pv-actions { display: flex; align-items: center; gap: .25rem; }
+.pv-btn { min-width: 36px; padding: .35rem .5rem; font-size: 1rem; }
+.pv-page { display: inline-flex; align-items: center; gap: .3rem; font-weight: 700; font-size: .85rem; color: var(--ink-2); }
+.pv-page input { width: 3.4em; min-height: 34px; padding: .2rem .35rem; text-align: center; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--surface); font-weight: 700; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.pv-page input::-webkit-outer-spin-button, .pv-page input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pv-page input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent); }
+.pv-total { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pv-pct { min-width: 3.4em; text-align: center; font-size: .8rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pv-mode { min-height: 34px; padding: .3rem .6rem; font-size: .8rem; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border); }
+.pv-mode.on { background: var(--primary-soft); color: var(--primary); border-color: color-mix(in srgb, var(--primary) 40%, transparent); }
+/* touch-action: we handle horizontal swipes (prev/next) so the browser's back-swipe doesn't fire */
+.pv-stage { position: relative; flex: 1; min-height: 0; overflow: auto; background: #1f2433; outline: none; display: flex; touch-action: pan-y pinch-zoom; overscroll-behavior: contain; }
+.pv-stage.is-zoomed { touch-action: pan-x pan-y pinch-zoom; }
+.pv-stage:focus-visible { box-shadow: inset 0 0 0 3px var(--primary); }
+.pv-canvas { margin: auto; padding: 12px; line-height: 0; }
+.pv-canvas canvas { display: block; background: #fff; border-radius: 6px; box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .55); }
+.pv-hint { display: none; }
+@media (max-width: 600px) and (orientation: portrait) {
+  .rev-sheet .pv-hint { display: block; position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; font-size: .8rem; color: rgba(255, 255, 255, .6); pointer-events: none; padding: 0 16px; }
+}
+.pv-loading { position: absolute; inset: 0; display: none; place-items: center; background: rgba(15, 18, 35, .35); pointer-events: none; }
+.pv-stage.is-loading .pv-loading { display: grid; }
+.pv-stage.is-loading .pv-canvas { opacity: .6; }
+.pv-loading .spinner { border-color: rgba(255, 255, 255, .25); border-top-color: #fff; }
+/* keep the toolbar on one row: shed the least important bits as the panel narrows */
+@container (max-width: 980px) {
+  .viewer .viewer-title strong { display: none; }
+  .viewer .viewer-title { flex: 1 1 auto; }
+}
+@container (max-width: 600px) {
+  .pv-pct { display: none; }
+  .pv-mode[data-zoom="width"] { display: none; }
+}
+@container (max-width: 470px) {
+  .viewer .viewer-title { display: none; }
+  .pv-zoom { display: none; } /* phones: pinch to zoom instead */
+  .pv-actions .lbl { display: none; }
+  .viewer .viewer-bar { gap: .3rem; justify-content: space-between; }
+  .pv-btn { min-width: 32px; padding: .3rem .4rem; }
+}
+
 /* Study mode: notes beside the PDF (desktop) */
 body.rev-split { overflow: hidden; }
 body.rev-split .container { max-width: none; padding: 12px 16px; }

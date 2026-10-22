@@ -1817,6 +1817,7 @@
       else if (e.key === 'End') v = SPLIT_MIN;
       else return;
       e.preventDefault();
+      e.stopPropagation(); // arrows resize here; don't also change the slide
       setSplit(v, true);
     });
   }
@@ -1826,27 +1827,237 @@
     return S.rev.decks.filter(function (d) { return d.id === S.revDeck; })[0] || S.rev.decks[0];
   }
 
+  /* ----- slide renderer (PDF.js, self-hosted) with an <iframe> fallback ----- */
+
+  var PDFJS_URL = 'assets/vendor/pdfjs/pdf.min.js';
+  var PDFJS_WORKER_URL = 'assets/vendor/pdfjs/pdf.worker.min.js';
+  var ZOOM_MIN = 0.25, ZOOM_MAX = 5;
+  var pdfLibPromise = null;
+  var pdfDocs = {};
+  var PV = { token: 0, task: null, zoom: 'fit', scale: 1, lastScale: 1, fallback: false, observer: null, resizeTimer: null };
+
+  function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (!pdfLibPromise) {
+      pdfLibPromise = new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = PDFJS_URL;
+        s.async = true;
+        s.onload = function () {
+          if (!window.pdfjsLib) { reject(new Error('PDF.js did not initialise')); return; }
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+          resolve(window.pdfjsLib);
+        };
+        s.onerror = function () { reject(new Error('Could not load ' + PDFJS_URL)); };
+        document.head.appendChild(s);
+      }).catch(function (e) { pdfLibPromise = null; throw e; });
+    }
+    return pdfLibPromise;
+  }
+
+  function getPdf(deck) {
+    if (!pdfDocs[deck.id]) {
+      pdfDocs[deck.id] = loadPdfJs()
+        .then(function (lib) { return lib.getDocument({ url: deck.file }).promise; })
+        .catch(function (e) { delete pdfDocs[deck.id]; throw e; });
+    }
+    return pdfDocs[deck.id];
+  }
+
+  function viewerDeck() {
+    var v = S.revViewer;
+    return v && S.rev ? S.rev.decks.filter(function (d) { return d.id === v.deck; })[0] : null;
+  }
+
   function renderRevisionViewer() {
     var box = document.getElementById('revViewer');
+    if (PV.observer) { PV.observer.disconnect(); PV.observer = null; }
+    PV.token++;
     if (!box) return;
     var v = S.revViewer;
-    if (!v) { box.innerHTML = ''; return; }
-    var deck = S.rev.decks.filter(function (d) { return d.id === v.deck; })[0];
-    if (!deck) { box.innerHTML = ''; return; }
-    var src = deck.file + '#page=' + v.page + '&view=FitH&navpanes=0';
-    // A fresh iframe each time so the PDF really jumps to the new page.
-    box.innerHTML = '<section class="viewer accent-' + escapeHtml(deck.accent || 'violet') + '" aria-label="PDF viewer">' +
-      '<div class="viewer-bar"><div class="viewer-title">' + icon('i-slides') + '<div><strong>' + escapeHtml(deck.title) + '</strong><span class="small muted" id="viewerPage"> · PDF page ' + v.page + ' of ' + (deck.pdfPages || '?') + '</span></div></div>' +
-      '<div class="row viewer-actions">' +
-      '<button class="btn btn-ghost btn-sm" data-action="rev-page" data-delta="-1" aria-label="Previous page"' + (v.page <= 1 ? ' disabled' : '') + '>' + icon('i-left', 'ic-sm') + '</button>' +
-      '<button class="btn btn-ghost btn-sm" data-action="rev-page" data-delta="1" aria-label="Next page"' + (deck.pdfPages && v.page >= deck.pdfPages ? ' disabled' : '') + '>' + icon('i-right', 'ic-sm') + '</button>' +
-      '<a class="btn btn-ghost btn-sm" href="' + escapeHtml(src) + '" target="_blank" rel="noopener" title="Open in new tab">' + icon('i-external', 'ic-sm') + '<span class="lbl">New tab</span></a>' +
-      '<a class="btn btn-ghost btn-sm" href="' + escapeHtml(deck.file) + '" download="' + escapeHtml(deck.downloadName || '') + '" title="Download PDF">' + icon('i-download', 'ic-sm') + '<span class="lbl">Download</span></a>' +
-      '<button class="btn btn-soft btn-sm" data-action="rev-close-viewer">' + icon('i-x', 'ic-sm') + (S.revSplit ? 'Exit study mode' : 'Close') + '</button></div></div>' +
-      '<div class="viewer-frame"><iframe title="' + escapeHtml(deck.title) + ' slides, page ' + v.page + '" src="' + escapeHtml(src) + '"></iframe></div>' +
-      (S.revSplit ? '' : '<p class="viewer-note small muted">' + icon('i-alert', 'ic-sm') + ' Some phones cannot show PDFs inside a page. If the slides don’t appear, use “New tab” or “Download”.</p>') +
-      '</section>';
+    var deck = viewerDeck();
+    if (!v || !deck) { box.innerHTML = ''; return; }
+    var src = deck.file + '#page=' + v.page;
+    var n = deck.pdfPages || 1;
+    var closeLbl = S.revSplit ? 'Exit' : 'Close';
+    var bar = '<div class="viewer-bar">' +
+      '<div class="viewer-title" title="' + escapeHtml(deck.title) + '">' + icon('i-slides') + '<strong>' + escapeHtml(deck.title) + '</strong></div>' +
+      '<div class="pv-pager" role="group" aria-label="Slide navigation">' +
+      '<button class="btn btn-ghost btn-sm pv-btn" data-action="rev-page" data-delta="-1" aria-label="Previous slide" title="Previous slide (←)"' + (v.page <= 1 ? ' disabled' : '') + '>' + icon('i-left', 'ic-sm') + '</button>' +
+      '<label class="pv-page"><span class="sr-only">Page</span><input type="number" inputmode="numeric" min="1" max="' + n + '" value="' + v.page + '" id="pvPage" data-change="rev-goto-page" aria-label="Go to page"><span class="pv-total" id="pvTotal">/ ' + n + '</span></label>' +
+      '<button class="btn btn-ghost btn-sm pv-btn" data-action="rev-page" data-delta="1" aria-label="Next slide" title="Next slide (→)"' + (v.page >= n ? ' disabled' : '') + '>' + icon('i-right', 'ic-sm') + '</button></div>' +
+      (PV.fallback ? '' :
+        '<div class="pv-zoom" role="group" aria-label="Zoom">' +
+        '<button class="btn btn-ghost btn-sm pv-btn" data-action="rev-zoom" data-zoom="out" aria-label="Zoom out" title="Zoom out (−)">−</button>' +
+        '<span class="pv-pct" id="pvPct" aria-live="polite">' + Math.round(PV.lastScale * 100) + '%</span>' +
+        '<button class="btn btn-ghost btn-sm pv-btn" data-action="rev-zoom" data-zoom="in" aria-label="Zoom in" title="Zoom in (+)">+</button>' +
+        '<button class="btn btn-sm pv-mode' + (PV.zoom === 'fit' ? ' on' : '') + '" data-action="rev-zoom" data-zoom="fit" aria-pressed="' + (PV.zoom === 'fit') + '" title="Show the whole slide">Fit</button>' +
+        '<button class="btn btn-sm pv-mode' + (PV.zoom === 'width' ? ' on' : '') + '" data-action="rev-zoom" data-zoom="width" aria-pressed="' + (PV.zoom === 'width') + '" title="Fill the panel width">Width</button></div>') +
+      '<div class="pv-actions">' +
+      '<a class="btn btn-ghost btn-sm pv-btn" href="' + escapeHtml(src) + '" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open PDF in a new tab">' + icon('i-external', 'ic-sm') + '</a>' +
+      '<a class="btn btn-ghost btn-sm pv-btn" href="' + escapeHtml(deck.file) + '" download="' + escapeHtml(deck.downloadName || '') + '" title="Download PDF" aria-label="Download PDF">' + icon('i-download', 'ic-sm') + '</a>' +
+      '<button class="btn btn-soft btn-sm" data-action="rev-close-viewer" title="' + (S.revSplit ? 'Exit study mode' : 'Close slides') + ' (Esc)" aria-label="' + (S.revSplit ? 'Exit study mode' : 'Close slides') + '">' + icon('i-x', 'ic-sm') + '<span class="lbl">' + closeLbl + '</span></button></div>' +
+      '</div>';
+    var stage = PV.fallback
+      ? '<div class="viewer-frame"><iframe title="' + escapeHtml(deck.title) + ' slides, page ' + v.page + '" src="' + escapeHtml(src + '&view=FitH&navpanes=0') + '"></iframe></div>' +
+        '<p class="viewer-note small muted">' + icon('i-alert', 'ic-sm') + ' Showing the browser’s PDF viewer because the slide renderer could not load. Use “New tab” or “Download” if nothing appears.</p>'
+      : '<div class="pv-stage" id="pvStage" tabindex="0" aria-label="Slide ' + v.page + ' of ' + n + '. Use arrow keys to change slides.">' +
+        '<div class="pv-canvas" id="pvCanvas"></div><div class="pv-loading" aria-hidden="true"><div class="spinner"></div></div>' +
+        '<p class="pv-hint" aria-hidden="true">Swipe to change slides · pinch to zoom · turn your phone sideways for a bigger slide</p></div>';
+    box.innerHTML = '<section class="viewer accent-' + escapeHtml(deck.accent || 'violet') + '" aria-label="' + escapeHtml(deck.title) + ' slides">' + bar + stage + '</section>';
     markViewingSection();
+    if (!PV.fallback) {
+      bindStage();
+      renderPdfPage();
+    }
+  }
+
+  /** Update toolbar state after a page change without rebuilding the viewer. */
+  function updateViewerChrome() {
+    var v = S.revViewer, deck = viewerDeck();
+    if (!v || !deck) return;
+    var n = deck.pdfPages || 1;
+    var input = document.getElementById('pvPage');
+    if (input) { input.value = v.page; input.max = n; }
+    var total = document.getElementById('pvTotal');
+    if (total) total.textContent = '/ ' + n;
+    $all('[data-action="rev-page"]', app).forEach(function (b) {
+      var d = Number(b.getAttribute('data-delta'));
+      b.disabled = d < 0 ? v.page <= 1 : v.page >= n;
+    });
+    var stage = document.getElementById('pvStage');
+    if (stage) stage.setAttribute('aria-label', 'Slide ' + v.page + ' of ' + n + '. Use arrow keys to change slides.');
+    $all('.pv-mode', app).forEach(function (b) {
+      var on = b.getAttribute('data-zoom') === PV.zoom;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+
+  function renderPdfPage() {
+    var stage = document.getElementById('pvStage');
+    var v = S.revViewer, deck = viewerDeck();
+    if (!stage || !v || !deck) return;
+    var token = ++PV.token;
+    stage.classList.add('is-loading');
+    getPdf(deck).then(function (pdf) {
+      if (token !== PV.token) return null;
+      if (deck.pdfPages !== pdf.numPages) { deck.pdfPages = pdf.numPages; updateViewerChrome(); }
+      var pageNo = Math.min(Math.max(1, v.page), pdf.numPages);
+      return pdf.getPage(pageNo).then(function (page) {
+        if (token !== PV.token) return null;
+        var base = page.getViewport({ scale: 1 });
+        var pad = 24;
+        var availW = Math.max(120, stage.clientWidth - pad);
+        var availH = Math.max(120, stage.clientHeight - pad);
+        var fitScale = Math.min(availW / base.width, availH / base.height);
+        var widthScale = availW / base.width;
+        var scale = PV.zoom === 'fit' ? fitScale : PV.zoom === 'width' ? widthScale : PV.scale;
+        scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, scale));
+        PV.lastScale = scale;
+        var dpr = Math.min(window.devicePixelRatio || 1, 3);
+        var vp = page.getViewport({ scale: scale * dpr });
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.floor(vp.width);
+        canvas.height = Math.floor(vp.height);
+        canvas.style.width = Math.floor(vp.width / dpr) + 'px';
+        canvas.style.height = Math.floor(vp.height / dpr) + 'px';
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', deck.title + ', slide ' + pageNo);
+        if (PV.task) { try { PV.task.cancel(); } catch (e) { /* already finished */ } }
+        var task = page.render({ canvasContext: canvas.getContext('2d'), viewport: vp });
+        PV.task = task;
+        return task.promise.then(function () {
+          if (token !== PV.token) return;
+          var holder = document.getElementById('pvCanvas');
+          if (!holder) return;
+          holder.innerHTML = '';
+          holder.appendChild(canvas);
+          stage.classList.remove('is-loading');
+          stage.classList.toggle('is-zoomed', canvas.offsetWidth > stage.clientWidth || canvas.offsetHeight > stage.clientHeight);
+          watchPixelRatio();
+          var pctEl = document.getElementById('pvPct');
+          if (pctEl) pctEl.textContent = Math.round(scale * 100) + '%';
+        });
+      });
+    }).catch(function (err) {
+      if (err && (err.name === 'RenderingCancelledException' || /cancel/i.test(err.message || ''))) return;
+      if (token !== PV.token && pdfLibPromise) return;
+      if (window.console) console.warn('[ExamPrep] slide renderer failed, falling back to the browser viewer:', err);
+      PV.fallback = true;
+      renderRevisionViewer();
+    });
+  }
+
+  function bindStage() {
+    var stage = document.getElementById('pvStage');
+    if (!stage) return;
+    if (window.ResizeObserver) {
+      var lastW = 0, lastH = 0;
+      PV.observer = new ResizeObserver(function (entries) {
+        var r = entries[0].contentRect;
+        if (Math.abs(r.width - lastW) < 2 && Math.abs(r.height - lastH) < 2) return;
+        lastW = r.width; lastH = r.height;
+        clearTimeout(PV.resizeTimer);
+        PV.resizeTimer = setTimeout(function () { if (PV.zoom !== 'custom') renderPdfPage(); }, 120);
+      });
+      PV.observer.observe(stage);
+    }
+    stage.addEventListener('keydown', function (e) {
+      var handled = true;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') stepRevisionPage(1);
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') stepRevisionPage(-1);
+      else if (e.key === '+' || e.key === '=') zoomViewer('in');
+      else if (e.key === '-') zoomViewer('out');
+      else handled = false;
+      // stop here so the page-level ← / → handler does not move a second slide
+      if (handled) { e.preventDefault(); e.stopPropagation(); }
+    });
+    // swipe between slides on touch screens (only when the slide is not zoomed in)
+    var sx = null, sy = null;
+    stage.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) { sx = null; return; }
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    }, { passive: true });
+    stage.addEventListener('touchend', function (e) {
+      if (sx === null || stage.classList.contains('is-zoomed')) return;
+      var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      sx = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) stepRevisionPage(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  }
+
+  /** Re-render when the device pixel ratio changes (window moved to another monitor, browser zoom). */
+  function watchPixelRatio() {
+    if (!window.matchMedia) return;
+    var dpr = window.devicePixelRatio || 1;
+    if (PV.dprMq && PV.dprValue === dpr) return;
+    if (PV.dprMq) {
+      if (PV.dprMq.removeEventListener) PV.dprMq.removeEventListener('change', PV.dprHandler);
+      else if (PV.dprMq.removeListener) PV.dprMq.removeListener(PV.dprHandler);
+    }
+    PV.dprValue = dpr;
+    PV.dprMq = window.matchMedia('(resolution: ' + dpr + 'dppx)');
+    PV.dprHandler = function () { PV.dprMq = null; if (document.getElementById('pvStage')) renderPdfPage(); };
+    if (PV.dprMq.addEventListener) PV.dprMq.addEventListener('change', PV.dprHandler);
+    else if (PV.dprMq.addListener) PV.dprMq.addListener(PV.dprHandler);
+  }
+
+  function stepRevisionPage(delta) {
+    var deck = viewerDeck();
+    if (!deck || !S.revViewer) return;
+    var page = Math.max(1, Math.min(deck.pdfPages || 1, S.revViewer.page + delta));
+    if (page !== S.revViewer.page) showRevisionPage(deck.id, page, null);
+  }
+
+  function zoomViewer(kind) {
+    if (kind === 'fit' || kind === 'width') PV.zoom = kind;
+    else {
+      PV.scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, PV.lastScale * (kind === 'in' ? 1.25 : 0.8)));
+      PV.zoom = 'custom';
+    }
+    updateViewerChrome();
+    renderPdfPage();
   }
 
   /** Highlight the note section whose pages contain the PDF page being shown. */
@@ -1870,7 +2081,8 @@
     setRevHash(revHash(deckId, page));
     if (wasOpen) {
       S.revViewer.page = page;
-      renderRevisionViewer();
+      if (PV.fallback || !document.getElementById('pvStage')) renderRevisionViewer();
+      else { updateViewerChrome(); renderPdfPage(); markViewingSection(); }
       return;
     }
     renderRevision();
@@ -2199,14 +2411,12 @@
       showRevisionPage(deckId, page, el.getAttribute('data-sec'));
     },
     'rev-page': function (el) {
-      if (!S.revViewer) return;
-      var deck = currentDeck();
-      var page = S.revViewer.page + Number(el.getAttribute('data-delta'));
-      page = Math.max(1, Math.min(deck.pdfPages || page, page));
-      showRevisionPage(deck.id, page, null);
+      stepRevisionPage(Number(el.getAttribute('data-delta')));
       var again = $('[data-action="rev-page"][data-delta="' + el.getAttribute('data-delta') + '"]', app);
       if (again && !again.disabled) again.focus({ preventScroll: true });
+      else { var st = document.getElementById('pvStage'); if (st) st.focus({ preventScroll: true }); }
     },
+    'rev-zoom': function (el) { zoomViewer(el.getAttribute('data-zoom')); },
     'rev-close-viewer': closeRevisionViewer,
     'rev-toggle': function (el) {
       var id = el.getAttribute('data-sec');
@@ -2306,6 +2516,14 @@
       } else {
         renderBrowseList();
       }
+    } else if (kind === 'rev-goto-page') {
+      var deck = viewerDeck();
+      var n = Math.round(Number(el.value));
+      if (!deck || !S.revViewer) return;
+      if (!isFinite(n) || el.value === '') { el.value = S.revViewer.page; return; }
+      n = Math.max(1, Math.min(deck.pdfPages || 1, n));
+      el.value = n;
+      if (n !== S.revViewer.page) showRevisionPage(deck.id, n, null);
     } else if (kind === 'import') {
       importProgress(el.files && el.files[0]);
       el.value = '';
@@ -2353,6 +2571,12 @@
     if ((tag === 'INPUT' && !isChoice) || tag === 'TEXTAREA' || tag === 'SELECT' || t.isContentEditable) return;
     if (e.key === '?') { e.preventDefault(); showShortcuts(); return; }
     if (e.key === 'Escape' && S.route.name === 'revision' && S.revViewer) { e.preventDefault(); closeRevisionViewer(); return; }
+    // ← / → change slides while the viewer is open (the slide stage and divider handle their own keys)
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && S.route.name === 'revision' && S.revViewer && !isChoice) {
+      e.preventDefault();
+      stepRevisionPage(e.key === 'ArrowRight' ? 1 : -1);
+      return;
+    }
     var rn = S.route.name;
     if ((rn !== 'practice' && rn !== 'review') || !S.ctx || !$('#qText', app)) return;
     var ctx = S.ctx;
@@ -2448,6 +2672,8 @@
         if (S.route.name !== 'revision' || !S.rev) return;
         if (S.revViewer && isWideScreen() !== S.revSplit) renderRevision();
         else if (S.revSplit) sizeWorkspace();
+        // browser zoom changes the pixel ratio: redraw so slides stay sharp
+        if (S.revViewer && PV.dprValue && PV.dprValue !== (window.devicePixelRatio || 1) && document.getElementById('pvStage')) renderPdfPage();
       }, 150);
     });
     document.addEventListener('visibilitychange', function () { if (document.hidden) save(); });
