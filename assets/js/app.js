@@ -7,6 +7,7 @@
   'use strict';
 
   var DATA_URL = 'assets/data/questions.json'; // relative: works under a GitHub Pages sub-path
+  var REVISION_URL = 'assets/data/revision.json';
   var STORE_KEY = 'qmvm-exam-practice:v1';
   var ACTIVITY_LIMIT = 60;
   var HISTORY_LIMIT = 20;
@@ -148,7 +149,8 @@
       activity: [],      // newest first
       session: null,     // active session
       lastResult: null,  // last finished session (for results/review)
-      history: []        // summaries of finished sessions
+      history: [],       // summaries of finished sessions
+      revised: {}        // revision section id -> timestamp marked as revised
     };
   }
 
@@ -169,7 +171,8 @@
       activity: Array.isArray(d.activity) ? d.activity.slice(0, ACTIVITY_LIMIT) : [],
       session: isSession(d.session) ? d.session : null,
       lastResult: isSession(d.lastResult) ? d.lastResult : null,
-      history: Array.isArray(d.history) ? d.history.slice(0, HISTORY_LIMIT) : []
+      history: Array.isArray(d.history) ? d.history.slice(0, HISTORY_LIMIT) : [],
+      revised: d.revised && typeof d.revised === 'object' && !Array.isArray(d.revised) ? d.revised : {}
     };
   }
 
@@ -218,7 +221,15 @@
     ticks: 0,
     review: { filter: 'all', index: 0 },
     browse: { q: '', course: '', topic: '', type: '', difficulty: '', status: '', limit: BROWSE_PAGE, open: {} },
-    modes: { scope: 'all', topic: '', difficulty: 'Medium', randomCount: '20', examCount: '25', examTime: '0', examType: '', shuffleQ: false }
+    modes: { scope: 'all', topic: '', difficulty: 'Medium', randomCount: '20', examCount: '25', examTime: '0', examType: '', shuffleQ: false },
+    // Slides & Quick Revision (loaded lazily on first visit)
+    rev: null,
+    revError: null,
+    revLoading: false,
+    revDeck: 'qm',
+    revQ: '',
+    revClosed: {},
+    revViewer: null
   };
 
   var app = null;
@@ -682,6 +693,7 @@
     review: renderReview,
     results: renderResults,
     browse: renderBrowse,
+    revision: renderRevision,
     settings: renderSettings
   };
 
@@ -693,7 +705,7 @@
     if (r.name !== 'practice') stopTimer();
     setActiveNav(r.name);
     VIEWS[r.name]();
-    var titles = { dashboard: 'Dashboard', modes: 'Practice modes', practice: 'Practice', review: 'Review', results: 'Results', browse: 'Question bank', settings: 'Settings' };
+    var titles = { dashboard: 'Dashboard', modes: 'Practice modes', practice: 'Practice', review: 'Review', results: 'Results', browse: 'Question bank', revision: 'Slides & Quick Revision', settings: 'Settings' };
     document.title = titles[r.name] + ' · QM & VM Exam Practice';
     if (isNavigation || changed) {
       window.scrollTo(0, 0);
@@ -794,6 +806,11 @@
       '<div class="stats">' + tiles + '</div>' +
       '<section class="section"><div class="section-title"><h2>Practice by question type</h2><a class="btn btn-ghost btn-sm" href="#/modes">More modes ' + icon('i-right', 'ic-sm') + '</a></div>' +
       '<div class="grid grid-2">' + typeCard('MSQ') + typeCard('MCQ') + '</div></section>' +
+      '<section class="section"><div class="section-title"><h2>Slides &amp; quick revision</h2><a class="btn btn-ghost btn-sm" href="#/revision">Open ' + icon('i-right', 'ic-sm') + '</a></div>' +
+      '<div class="grid grid-2">' +
+      '<a class="card card-hover rev-link accent-violet" href="#/revision/qm"><span class="deck-icon">' + icon('i-slides') + '</span><span><strong>Quality Management</strong><span class="small muted">Session 11 · summaries, gurus table, formulas, cases</span></span>' + icon('i-right') + '</a>' +
+      '<a class="card card-hover rev-link accent-teal" href="#/revision/vm"><span class="deck-icon">' + icon('i-slides') + '</span><span><strong>Vendor Management &amp; Contracts</strong><span class="small muted">Session 7 · Kraljic, TCO, clauses, SLAs, cases</span></span>' + icon('i-right') + '</a>' +
+      '</div></section>' +
       '<section class="section grid grid-2" style="align-items:start">' +
       '<div class="card"><div class="section-title"><h2>Topic progress</h2><div class="legend"><span><i style="background:var(--good)"></i>Correct</span><span><i style="background:var(--bad)"></i>Incorrect</span><span><i style="background:var(--surface-3)"></i>Not tried</span></div></div>' +
       '<div class="topic-list">' + topicHtml + '</div></div>' +
@@ -1571,6 +1588,243 @@
   }
 
   /* =====================================================================
+     Views — Slides & Quick Revision
+     ===================================================================== */
+
+  /** Minimal rich text for summaries: **bold**, *italic*, with search highlighting. Input is escaped. */
+  function richText(text, tokens) {
+    return String(text).split('**').map(function (part, i) {
+      var inner = part.split('*').map(function (p, j) {
+        return j % 2 ? '<em>' + highlight(p, tokens) + '</em>' : highlight(p, tokens);
+      }).join('');
+      return i % 2 ? '<strong>' + inner + '</strong>' : inner;
+    }).join('');
+  }
+
+  function plain(text) { return String(text).replace(/\*/g, ''); }
+
+  function sectionHaystack(sec) {
+    var parts = [sec.title, sec.topic || '', sec.tip || ''].concat(sec.points || []);
+    if (sec.table) {
+      parts.push(sec.table.caption || '');
+      parts = parts.concat(sec.table.head || []);
+      (sec.table.rows || []).forEach(function (r) { parts = parts.concat(r); });
+    }
+    return plain(parts.join(' \n ')).toLowerCase();
+  }
+
+  function matchesTokens(hay, tokens) {
+    for (var i = 0; i < tokens.length; i++) if (hay.indexOf(tokens[i]) === -1) return false;
+    return true;
+  }
+
+  function pageLabel(p) { return p[0] === p[1] ? 'PDF p.' + p[0] : 'PDF p.' + p[0] + '–' + p[1]; }
+
+  function deckProgress(deck) {
+    var done = deck.sections.filter(function (s) { return store().revised[s.id]; }).length;
+    return { done: done, total: deck.sections.length };
+  }
+
+  function loadRevision() {
+    if (S.revLoading) return;
+    S.revLoading = true;
+    fetch(REVISION_URL, { cache: 'no-cache' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText + ' while loading ' + REVISION_URL);
+        return res.text();
+      })
+      .then(function (text) {
+        var json;
+        try { json = JSON.parse(text); } catch (e) { throw new Error('revision.json is not valid JSON: ' + e.message); }
+        if (!json || !Array.isArray(json.decks) || !json.decks.length) throw new Error('revision.json has no "decks".');
+        json.decks.forEach(function (d) {
+          if (!d.id || !d.title || !d.file || !Array.isArray(d.sections)) throw new Error('A deck in revision.json is missing id, title, file or sections.');
+          d.formulas = d.formulas || [];
+          d.concepts = d.concepts || [];
+        });
+        S.rev = json;
+        S.revError = null;
+      })
+      .catch(function (err) { S.revError = err; })
+      .then(function () {
+        S.revLoading = false;
+        if (S.route.name === 'revision') renderRevision();
+      });
+  }
+
+  function renderRevision() {
+    if (S.revError) {
+      app.innerHTML = '<div class="view"><div class="card error-card" role="alert"><div class="row">' + icon('i-alert', 'ic-lg') + '<h2 style="margin:0">Revision notes could not be loaded</h2></div>' +
+        '<p style="margin-top:1rem">Check that <code>' + REVISION_URL + '</code> exists and contains valid JSON. Practice and the question bank still work.</p>' +
+        '<details class="disclosure"><summary>Technical details</summary><pre>' + escapeHtml(S.revError.message || String(S.revError)) + '</pre></details>' +
+        '<button class="btn btn-primary" data-action="rev-retry">' + icon('i-refresh') + 'Try again</button></div></div>';
+      return;
+    }
+    if (!S.rev) {
+      app.innerHTML = '<div class="view"><div class="page-head"><div><h1>Slides &amp; Quick Revision</h1><p>Loading revision notes…</p></div></div>' +
+        '<div class="grid grid-2"><div class="card skeleton" style="height:220px"></div><div class="card skeleton" style="height:220px"></div></div></div>';
+      loadRevision();
+      return;
+    }
+    var decks = S.rev.decks;
+    var wanted = S.route.params[0] || S.revDeck;
+    var deck = decks.filter(function (d) { return d.id === wanted; })[0] || decks[0];
+    if (S.revDeck !== deck.id) { S.revViewer = null; }
+    S.revDeck = deck.id;
+
+    var cards = decks.map(function (d) {
+      var pr = deckProgress(d);
+      var active = d.id === deck.id;
+      return '<article class="deck-card accent-' + escapeHtml(d.accent || 'violet') + (active ? ' active' : '') + '" aria-labelledby="deck-' + d.id + '">' +
+        '<div class="deck-top"><div class="deck-icon">' + icon('i-slides', 'ic-lg') + '</div>' +
+        '<div class="deck-titles"><h2 id="deck-' + d.id + '">' + escapeHtml(d.title) + '</h2><p>' + escapeHtml(d.subtitle || '') + '</p></div></div>' +
+        '<div class="deck-meta"><span>' + icon('i-file', 'ic-sm') + d.pdfPages + ' pages</span><span>' + icon('i-list', 'ic-sm') + d.sections.length + ' summaries</span>' +
+        '<span>' + icon('i-sigma', 'ic-sm') + d.formulas.length + ' formulas</span><span>' + icon('i-clock', 'ic-sm') + escapeHtml(d.date || '') + '</span></div>' +
+        '<div class="deck-progress"><div class="row" style="justify-content:space-between"><span class="small">Revised</span><span class="small" id="revProg-' + d.id + '"><strong>' + pr.done + '</strong> / ' + pr.total + '</span></div>' +
+        progressBar(pct(pr.done, pr.total), d.title + ' sections revised', true) + '</div>' +
+        '<div class="deck-actions">' +
+        (active ? '<span class="btn btn-sm deck-current">' + icon('i-check', 'ic-sm') + 'Showing below</span>'
+          : '<a class="btn btn-primary btn-sm" href="#/revision/' + d.id + '">' + icon('i-book', 'ic-sm') + 'Revise this deck</a>') +
+        '<button class="btn btn-ghost btn-sm" data-action="rev-view" data-deck="' + d.id + '" data-page="1">' + icon('i-eye', 'ic-sm') + 'View PDF</button>' +
+        '<a class="btn btn-ghost btn-sm" href="' + escapeHtml(d.file) + '" download="' + escapeHtml(d.downloadName || '') + '">' + icon('i-download', 'ic-sm') + 'Download</a>' +
+        '</div></article>';
+    }).join('');
+
+    var tabs = '<div class="segmented rev-tabs" role="tablist" aria-label="Choose a deck">' + decks.map(function (d) {
+      return '<a role="tab" href="#/revision/' + d.id + '"' + (d.id === deck.id ? ' aria-current="true" aria-selected="true"' : ' aria-selected="false"') + '>' + escapeHtml(d.title) + '</a>';
+    }).join('') + '</div>';
+
+    app.innerHTML = '<div class="view">' +
+      '<div class="page-head"><div><h1>Slides &amp; Quick Revision</h1><p>Read the lecture decks, then revise from exam-focused summaries, key concepts and formulas.</p></div></div>' +
+      '<div class="grid grid-2 deck-grid">' + cards + '</div>' +
+      '<div class="rev-toolbar card">' + tabs +
+      '<div class="search-wrap rev-search">' + icon('i-search') + '<input class="input" id="revQ" type="search" placeholder="Search notes, e.g. ZOPA, DMAIC, carve-out…" value="' + escapeHtml(S.revQ) + '" data-input="rev-q" autocomplete="off" aria-label="Search revision notes"></div>' +
+      '<div class="row rev-tools"><button class="btn btn-ghost btn-sm" data-action="rev-expand">' + icon('i-chevron', 'ic-sm') + 'Expand all</button>' +
+      '<button class="btn btn-ghost btn-sm" data-action="rev-collapse">' + icon('i-list', 'ic-sm') + 'Collapse all</button></div></div>' +
+      '<div id="revViewer"></div>' +
+      '<div id="revBody"></div></div>';
+    renderRevisionViewer();
+    renderRevisionBody();
+  }
+
+  function currentDeck() {
+    if (!S.rev) return null;
+    return S.rev.decks.filter(function (d) { return d.id === S.revDeck; })[0] || S.rev.decks[0];
+  }
+
+  function renderRevisionViewer() {
+    var box = document.getElementById('revViewer');
+    if (!box) return;
+    var v = S.revViewer;
+    if (!v) { box.innerHTML = ''; return; }
+    var deck = S.rev.decks.filter(function (d) { return d.id === v.deck; })[0];
+    if (!deck) { box.innerHTML = ''; return; }
+    var src = deck.file + '#page=' + v.page + '&view=FitH';
+    box.innerHTML = '<section class="card viewer accent-' + escapeHtml(deck.accent || 'violet') + '" aria-label="PDF viewer">' +
+      '<div class="viewer-bar"><div class="viewer-title">' + icon('i-slides') + '<div><strong>' + escapeHtml(deck.title) + '</strong><span class="small muted"> · opened at PDF page ' + v.page + '</span></div></div>' +
+      '<div class="row"><a class="btn btn-ghost btn-sm" href="' + escapeHtml(src) + '" target="_blank" rel="noopener">' + icon('i-external', 'ic-sm') + 'Open in new tab</a>' +
+      '<a class="btn btn-ghost btn-sm" href="' + escapeHtml(deck.file) + '" download="' + escapeHtml(deck.downloadName || '') + '">' + icon('i-download', 'ic-sm') + 'Download</a>' +
+      '<button class="btn btn-ghost btn-sm" data-action="rev-close-viewer" aria-label="Close viewer">' + icon('i-x', 'ic-sm') + 'Close</button></div></div>' +
+      '<div class="viewer-frame"><iframe title="' + escapeHtml(deck.title) + ' slides" src="' + escapeHtml(src) + '" loading="lazy"></iframe></div>' +
+      '<p class="viewer-note small muted">' + icon('i-alert', 'ic-sm') + ' Some phones cannot show PDFs inside a page. If the slides don’t appear, use “Open in new tab” or “Download”.</p></section>';
+  }
+
+  function renderRevisionBody() {
+    var box = document.getElementById('revBody');
+    var deck = currentDeck();
+    if (!box || !deck) return;
+    var tokens = searchTokens(S.revQ);
+    var revised = store().revised;
+    var topicCount = {};
+    S.topics.forEach(function (t) { topicCount[t.key] = t.count; });
+
+    var sections = deck.sections.map(function (sec, i) { return { sec: sec, n: i + 1, match: !tokens.length || matchesTokens(sectionHaystack(sec), tokens) }; });
+    var shown = sections.filter(function (x) { return x.match; });
+    var formulas = deck.formulas.filter(function (f) { return !tokens.length || matchesTokens(plain(f.name + ' ' + f.expr + ' ' + (f.example || '')).toLowerCase(), tokens); });
+    var concepts = deck.concepts.filter(function (c) { return !tokens.length || matchesTokens((c.term + ' ' + c.def).toLowerCase(), tokens); });
+    var overviewMatch = !tokens.length || matchesTokens(plain(deck.overview || '').toLowerCase(), tokens);
+
+    // table of contents
+    var toc = '<nav class="card toc" aria-label="' + escapeHtml(deck.title) + ' contents"><div class="toc-head"><h3>Contents</h3><span class="small muted">' + deckProgress(deck).done + '/' + deck.sections.length + ' revised</span></div><ol>' +
+      (overviewMatch ? '<li><button data-action="rev-jump" data-target="rev-overview">' + icon('i-sparkles', 'ic-sm') + '<span>Overview</span></button></li>' : '') +
+      shown.map(function (x) {
+        var done = !!revised[x.sec.id];
+        return '<li><button data-action="rev-jump" data-target="' + escapeHtml(x.sec.id) + '"' + (done ? ' class="done"' : '') + '><span class="toc-n">' + (done ? icon('i-check', 'ic-sm') : x.n) + '</span><span>' + escapeHtml(x.sec.title) + '</span></button></li>';
+      }).join('') +
+      (formulas.length ? '<li><button data-action="rev-jump" data-target="rev-formulas">' + icon('i-sigma', 'ic-sm') + '<span>Formulas &amp; numbers</span></button></li>' : '') +
+      (concepts.length ? '<li><button data-action="rev-jump" data-target="rev-concepts">' + icon('i-bulb', 'ic-sm') + '<span>Key concepts</span></button></li>' : '') +
+      '</ol></nav>';
+
+    var hits = shown.length + formulas.length + concepts.length + (overviewMatch && tokens.length ? 1 : 0);
+    var searchBar = tokens.length
+      ? '<div class="results-bar" role="status"><span><strong>' + hits + '</strong> match' + (hits === 1 ? '' : 'es') + ' for “' + escapeHtml(S.revQ) + '” in ' + escapeHtml(deck.title) + '</span><button class="btn btn-ghost btn-sm" data-action="rev-clear-search">' + icon('i-x', 'ic-sm') + 'Clear search</button></div>'
+      : '';
+
+    var overview = overviewMatch ? '<section class="card rev-overview accent-' + escapeHtml(deck.accent || 'violet') + '" id="rev-overview">' +
+      '<div class="eyebrow">' + icon('i-sparkles', 'ic-sm') + 'The big idea</div><p>' + richText(deck.overview || '', tokens) + '</p>' +
+      '<div class="row small"><span>' + icon('i-file', 'ic-sm') + ' ' + escapeHtml(deck.lecturer || '') + '</span><span class="muted">·</span><span>' + escapeHtml(deck.date || '') + '</span></div></section>' : '';
+
+    var secHtml = shown.map(function (x) {
+      var sec = x.sec;
+      var done = !!revised[sec.id];
+      var open = tokens.length ? true : !S.revClosed[sec.id];
+      var key = deck.course + '||' + sec.topic;
+      var qCount = topicCount[key] || 0;
+      var table = '';
+      if (sec.table && sec.table.rows && sec.table.rows.length) {
+        table = '<div class="table-wrap rev-table"><table class="data"><caption>' + escapeHtml(sec.table.caption || '') + '</caption><thead><tr>' +
+          sec.table.head.map(function (h) { return '<th scope="col">' + escapeHtml(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+          sec.table.rows.map(function (r) { return '<tr>' + r.map(function (c, ci) { return ci === 0 ? '<th scope="row">' + richText(c, tokens) + '</th>' : '<td>' + richText(c, tokens) + '</td>'; }).join('') + '</tr>'; }).join('') +
+          '</tbody></table></div>';
+      }
+      return '<details class="card rev-section' + (done ? ' is-done' : '') + '" id="' + escapeHtml(sec.id) + '" data-sec="' + escapeHtml(sec.id) + '"' + (open ? ' open' : '') + '>' +
+        '<summary><span class="sec-n">' + x.n + '</span><span class="sec-title">' + richText(sec.title, tokens) + '</span>' +
+        '<span class="sec-chips"><span class="badge">' + pageLabel(sec.pages) + '</span>' + (done ? '<span class="badge badge-good">' + icon('i-check', 'ic-sm') + 'Revised</span>' : '') + '</span>' +
+        '<svg class="ic chev" aria-hidden="true"><use href="#i-chevron"/></svg></summary>' +
+        '<div class="sec-body"><div class="sec-actions">' +
+        '<button class="btn btn-soft btn-sm" data-action="rev-view" data-deck="' + deck.id + '" data-page="' + sec.pages[0] + '">' + icon('i-eye', 'ic-sm') + 'View slides (' + pageLabel(sec.pages) + ')</button>' +
+        (qCount ? '<button class="btn btn-ghost btn-sm" data-action="rev-practice" data-topic="' + escapeHtml(key) + '">' + icon('i-play', 'ic-sm') + 'Practise ' + qCount + ' questions</button>' : '') +
+        '<button class="btn btn-sm ' + (done ? 'btn-good' : 'btn-ghost') + '" data-action="rev-toggle" data-sec="' + escapeHtml(sec.id) + '" aria-pressed="' + done + '">' + icon(done ? 'i-check-circle' : 'i-check', 'ic-sm') + (done ? 'Revised' : 'Mark as revised') + '</button></div>' +
+        '<ul class="points">' + (sec.points || []).map(function (p) { return '<li>' + richText(p, tokens) + '</li>'; }).join('') + '</ul>' + table +
+        (sec.tip ? '<div class="rev-tip">' + icon('i-alert') + '<div><strong>Exam trap</strong><p>' + richText(sec.tip, tokens) + '</p></div></div>' : '') +
+        '</div></details>';
+    }).join('');
+
+    var numbers = '';
+    var numTable = deck.dpmo ? { title: 'DPMO by sigma level (1.5σ shift)', rows: deck.dpmo } : deck.downtime ? { title: 'Allowed downtime per 30-day month', rows: deck.downtime } : null;
+    if (numTable && !tokens.length) {
+      numbers = '<div class="num-strip" role="table" aria-label="' + escapeHtml(numTable.title) + '"><div class="num-strip-title" role="caption">' + escapeHtml(numTable.title) + '</div><div class="num-cells">' +
+        numTable.rows.map(function (r) { return '<div class="num-cell" role="row"><span role="cell">' + escapeHtml(r[0]) + '</span><b role="cell">' + escapeHtml(r[1]) + '</b></div>'; }).join('') + '</div></div>';
+    }
+    var formulaHtml = formulas.length ? '<section class="rev-block" id="rev-formulas"><div class="section-title"><h2>' + icon('i-sigma') + ' Formulas &amp; numbers</h2></div>' + numbers +
+      '<div class="formula-grid">' + formulas.map(function (f) {
+        return '<div class="card formula"><div class="f-name">' + highlight(f.name, tokens) + '</div><div class="f-expr">' + highlight(f.expr, tokens) + '</div>' +
+          (f.example ? '<div class="f-ex"><span>Example</span>' + highlight(f.example, tokens) + '</div>' : '') + '</div>';
+      }).join('') + '</div></section>' : '';
+
+    var conceptHtml = concepts.length ? '<section class="rev-block" id="rev-concepts"><div class="section-title"><h2>' + icon('i-bulb') + ' Key concepts</h2></div><dl class="concept-grid">' +
+      concepts.map(function (c) { return '<div class="concept"><dt>' + highlight(c.term, tokens) + '</dt><dd>' + highlight(c.def, tokens) + '</dd></div>'; }).join('') + '</dl></section>' : '';
+
+    var empty = tokens.length && !hits
+      ? '<div class="card empty"><div class="art">' + icon('i-search') + '</div><h2>No notes match</h2><p>Try another keyword, or switch decks — the search covers the deck shown.</p><button class="btn btn-primary" data-action="rev-clear-search">Clear search</button></div>'
+      : '';
+
+    box.innerHTML = searchBar + '<div class="rev-layout">' + toc + '<div class="rev-main">' + (empty || (overview + secHtml + formulaHtml + conceptHtml)) + '</div></div>';
+  }
+
+  function updateRevisionProgress() {
+    if (!S.rev) return;
+    S.rev.decks.forEach(function (d) {
+      var el = document.getElementById('revProg-' + d.id);
+      if (!el) return;
+      var pr = deckProgress(d);
+      el.innerHTML = '<strong>' + pr.done + '</strong> / ' + pr.total;
+      var bar = el.closest('.deck-progress').querySelector('.progress');
+      if (bar) { bar.setAttribute('aria-valuenow', pct(pr.done, pr.total)); bar.querySelector('span').style.width = pct(pr.done, pr.total) + '%'; }
+    });
+  }
+
+  /* =====================================================================
      Views — Settings
      ===================================================================== */
 
@@ -1770,6 +2024,61 @@
       if (b.status) bits.push(b.status === 'new' ? 'not attempted' : b.status);
       startSession({ mode: 'custom', title: 'Custom set' + (bits.length ? ' · ' + bits.join(' · ') : ''), qids: ids(res) });
     },
+    'rev-retry': function () { S.revError = null; renderRevision(); },
+    'rev-view': function (el) {
+      var deckId = el.getAttribute('data-deck');
+      var page = Math.max(1, Number(el.getAttribute('data-page')) || 1);
+      S.revViewer = { deck: deckId, page: page };
+      if (deckId !== S.revDeck) {
+        S.revDeck = deckId;
+        navigate('revision/' + deckId);
+      } else {
+        renderRevisionViewer();
+      }
+      var box = document.getElementById('revViewer');
+      if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    'rev-close-viewer': function () {
+      S.revViewer = null;
+      renderRevisionViewer();
+    },
+    'rev-toggle': function (el) {
+      var id = el.getAttribute('data-sec');
+      var r = store().revised;
+      if (r[id]) delete r[id]; else { r[id] = Date.now(); toast('Marked as revised'); }
+      save();
+      renderRevisionBody();
+      updateRevisionProgress();
+      var again = $('[data-action="rev-toggle"][data-sec="' + id + '"]', app);
+      if (again) again.focus({ preventScroll: true });
+    },
+    'rev-practice': function (el) {
+      S.modes.topic = el.getAttribute('data-topic');
+      startMode('topic');
+    },
+    'rev-jump': function (el) {
+      var target = document.getElementById(el.getAttribute('data-target'));
+      if (!target) return;
+      if (target.tagName === 'DETAILS') { target.open = true; delete S.revClosed[target.id]; }
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var focusEl = target.querySelector('summary') || target;
+      if (!focusEl.hasAttribute('tabindex') && focusEl.tagName !== 'SUMMARY') focusEl.setAttribute('tabindex', '-1');
+      focusEl.focus({ preventScroll: true });
+    },
+    'rev-expand': function () { S.revClosed = {}; renderRevisionBody(); },
+    'rev-collapse': function () {
+      var deck = currentDeck();
+      if (!deck) return;
+      deck.sections.forEach(function (s) { S.revClosed[s.id] = true; });
+      renderRevisionBody();
+    },
+    'rev-clear-search': function () {
+      S.revQ = '';
+      var input = document.getElementById('revQ');
+      if (input) input.value = '';
+      renderRevisionBody();
+      if (input) input.focus();
+    },
     'set-theme': function (el) { setTheme(el.getAttribute('data-value')); renderSettings(); },
     'export': exportProgress,
     'import-label': function () { /* the label opens the file picker natively */ },
@@ -1840,6 +2149,14 @@
   var searchTimer = null;
   function onInput(e) {
     var el = e.target;
+    if (el.getAttribute && el.getAttribute('data-input') === 'rev-q') {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        S.revQ = el.value;
+        renderRevisionBody();
+      }, 160);
+      return;
+    }
     if (el.getAttribute && el.getAttribute('data-input') === 'browse-q') {
       clearTimeout(searchTimer);
       searchTimer = setTimeout(function () {
@@ -1940,6 +2257,12 @@
     app.addEventListener('click', onClick);
     app.addEventListener('change', onChange);
     app.addEventListener('input', onInput);
+    // remember which revision sections the user collapsed ('toggle' does not bubble, so capture it)
+    app.addEventListener('toggle', function (e) {
+      var d = e.target;
+      if (!d.classList || !d.classList.contains('rev-section') || searchTokens(S.revQ).length) return;
+      if (d.open) delete S.revClosed[d.id]; else S.revClosed[d.id] = true;
+    }, true);
     app.addEventListener('keydown', function (e) {
       // keyboard activation for the file-picker label
       if ((e.key === 'Enter' || e.key === ' ') && e.target.getAttribute && e.target.getAttribute('data-action') === 'import-label') {

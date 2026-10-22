@@ -18,6 +18,7 @@ It is a static website (HTML, CSS, vanilla JavaScript and one JSON file). There 
 ```
 exam-practice-website/
 ├── index.html                 # App shell (layout, nav, icons)
+├── assets/slides/             # The two lecture PDFs (viewable + downloadable in "Slides & Revision")
 ├── README.md
 ├── .nojekyll                  # Tells GitHub Pages to serve files as-is
 └── assets/
@@ -25,7 +26,8 @@ exam-practice-website/
     ├── js/validator.js        # Question bank validation
     ├── js/app.js              # Application logic
     ├── img/favicon.svg
-    └── data/questions.json    # The question bank (edit this to add questions)
+    ├── data/questions.json    # The question bank (edit this to add questions)
+    └── data/revision.json     # Slide summaries, key concepts and formulas
 ```
 
 All paths are relative (for example `assets/data/questions.json`), so the site works at `https://<user>.github.io/<repo>/` as well as at a domain root.
@@ -203,6 +205,8 @@ Saved progress is kept. If you delete a question, its progress and bookmarks are
 Plus a course filter, shuffled question order, shuffled options (grading uses option ids, so keys stay correct), and custom sets built from Question bank searches.
 
 **Results**: score, attempted, correct, incorrect, accuracy, MSQ accuracy, MCQ accuracy, topic-wise accuracy, time taken, unanswered, and question-by-question review. Buttons: Review Incorrect, Retry Incorrect, Restart Quiz, Dashboard. Recent sessions are listed too.
+
+**Slides & Quick Revision** (`#/revision`): both lecture PDFs with an in-page viewer (opens at the relevant page), "Open in new tab" and "Download". Each deck has an overview and section-by-section exam summaries (key points, tables, "exam trap" tips) with a contents sidebar. There are also formula cards with worked examples, number strips (DPMO by sigma level, SLA downtime), a key-concepts glossary, search with highlighting, expand/collapse, "Mark as revised" progress (saved in the browser) and a "Practise N questions" button per section. To edit or extend the notes, change `assets/data/revision.json`: each deck has `sections` (title, PDF `pages`, `topic` matching the question bank, `points`, optional `table` and `tip`), `formulas` and `concepts`. Use `**bold**` and `*italic*` in text. Note: inline PDF preview doesn't work on some phones; the Open/Download buttons always do.
 
 **Question bank**: keyword search (all words must match, with highlighting), filters (course, topic, type, difficulty, status), an answer key per question, "Practise these N", and bookmarks.
 
