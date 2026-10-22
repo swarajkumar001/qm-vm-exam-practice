@@ -703,6 +703,7 @@
     var changed = S.route.name !== r.name;
     S.route = r;
     if (r.name !== 'practice') stopTimer();
+    if (r.name !== 'revision') document.body.classList.remove('rev-split', 'rev-sheet-open');
     setActiveNav(r.name);
     VIEWS[r.name]();
     var titles = { dashboard: 'Dashboard', modes: 'Practice modes', practice: 'Practice', review: 'Review', results: 'Results', browse: 'Question bank', revision: 'Slides & Quick Revision', settings: 'Settings' };
@@ -1667,10 +1668,18 @@
       return;
     }
     var decks = S.rev.decks;
-    var wanted = S.route.params[0] || S.revDeck;
+    var params = S.route.params;
+    var wanted = params[0] || S.revDeck;
     var deck = decks.filter(function (d) { return d.id === wanted; })[0] || decks[0];
-    if (S.revDeck !== deck.id) { S.revViewer = null; }
     S.revDeck = deck.id;
+    // The open PDF lives in the URL (#/revision/qm/view/23) so a refresh restores the same view.
+    S.revViewer = params[1] === 'view'
+      ? { deck: deck.id, page: Math.min(deck.pdfPages || 999, Math.max(1, Number(params[2]) || 1)) }
+      : null;
+    S.revSplit = !!S.revViewer && isWideScreen();
+    document.body.classList.toggle('rev-split', S.revSplit);
+    document.body.classList.toggle('rev-sheet-open', !!S.revViewer && !S.revSplit);
+    if (S.revSplit) { renderRevisionWorkspace(deck); return; }
 
     var cards = decks.map(function (d) {
       var pr = deckProgress(d);
@@ -1690,21 +1699,126 @@
         '</div></article>';
     }).join('');
 
-    var tabs = '<div class="segmented rev-tabs" role="tablist" aria-label="Choose a deck">' + decks.map(function (d) {
-      return '<a role="tab" href="#/revision/' + d.id + '"' + (d.id === deck.id ? ' aria-current="true" aria-selected="true"' : ' aria-selected="false"') + '>' + escapeHtml(d.title) + '</a>';
-    }).join('') + '</div>';
-
-    app.innerHTML = '<div class="view">' +
-      '<div class="page-head"><div><h1>Slides &amp; Quick Revision</h1><p>Read the lecture decks, then revise from exam-focused summaries, key concepts and formulas.</p></div></div>' +
+    // no entry animation when the sheet is open: a transform on an ancestor would trap the fixed sheet
+    app.innerHTML = '<div class="view' + (S.revViewer ? ' no-anim' : '') + '">' +
+      '<div class="page-head"><div><h1>Slides &amp; Quick Revision</h1><p>Read the lecture decks, then revise from exam-focused summaries, key concepts and formulas. On a wide screen, “View PDF” opens the slides beside the notes.</p></div></div>' +
       '<div class="grid grid-2 deck-grid">' + cards + '</div>' +
-      '<div class="rev-toolbar card">' + tabs +
-      '<div class="search-wrap rev-search">' + icon('i-search') + '<input class="input" id="revQ" type="search" placeholder="Search notes, e.g. ZOPA, DMAIC, carve-out…" value="' + escapeHtml(S.revQ) + '" data-input="rev-q" autocomplete="off" aria-label="Search revision notes"></div>' +
-      '<div class="row rev-tools"><button class="btn btn-ghost btn-sm" data-action="rev-expand">' + icon('i-chevron', 'ic-sm') + 'Expand all</button>' +
-      '<button class="btn btn-ghost btn-sm" data-action="rev-collapse">' + icon('i-list', 'ic-sm') + 'Collapse all</button></div></div>' +
-      '<div id="revViewer"></div>' +
-      '<div id="revBody"></div></div>';
+      '<div class="rev-toolbar card">' + revTabs(deck) + revSearchAndTools() + '</div>' +
+      '<div id="revBody"></div>' +
+      (S.revViewer ? '<div class="rev-sheet" role="dialog" aria-modal="true" aria-label="' + escapeHtml(deck.title) + ' slides"><div id="revViewer"></div></div>' : '') +
+      '</div>';
     renderRevisionViewer();
     renderRevisionBody();
+    if (S.revViewer) { var c = $('#revViewer [data-action="rev-close-viewer"]', app); if (c) c.focus(); }
+  }
+
+  /* ----- split workspace: notes beside a 60% PDF panel ----- */
+
+  var SPLIT_KEY = 'qmvm-rev-split';
+  var SPLIT_DEFAULT = 60, SPLIT_MIN = 35, SPLIT_MAX = 75;
+
+  function isWideScreen() { return window.matchMedia ? window.matchMedia('(min-width: 1000px)').matches : window.innerWidth >= 1000; }
+
+  function getSplit() {
+    var v = NaN;
+    try { v = Number(window.localStorage.getItem(SPLIT_KEY)); } catch (e) { /* storage blocked */ }
+    return v >= SPLIT_MIN && v <= SPLIT_MAX ? v : SPLIT_DEFAULT;
+  }
+  function setSplit(v, persist) {
+    v = Math.round(Math.max(SPLIT_MIN, Math.min(SPLIT_MAX, v)));
+    var ws = $('.rev-workspace', app);
+    if (ws) ws.style.setProperty('--split', v + '%');
+    var div = $('.ws-divider', app);
+    if (div) { div.setAttribute('aria-valuenow', String(v)); div.setAttribute('aria-valuetext', 'Slides panel ' + v + '% of the width'); }
+    if (persist) { try { window.localStorage.setItem(SPLIT_KEY, String(v)); } catch (e) { /* storage blocked */ } }
+    return v;
+  }
+
+  function revHash(deckId, page) { return '#/revision/' + deckId + (page ? '/view/' + page : ''); }
+  /** Update the URL without triggering a re-render (keeps the notes' scroll position). */
+  function setRevHash(h) {
+    if (location.hash !== h) {
+      try { history.replaceState(null, '', h); } catch (e) { location.hash = h; return; }
+    }
+    S.route = parseHash();
+  }
+
+  function revTabs(deck) {
+    return '<div class="segmented rev-tabs" role="tablist" aria-label="Choose a deck">' + S.rev.decks.map(function (d) {
+      return '<a role="tab" href="' + revHash(d.id, S.revSplit ? 1 : 0) + '"' + (d.id === deck.id ? ' aria-current="true" aria-selected="true"' : ' aria-selected="false"') + '>' + escapeHtml(d.title) + '</a>';
+    }).join('') + '</div>';
+  }
+
+  function revSearchAndTools() {
+    return '<div class="search-wrap rev-search">' + icon('i-search') + '<input class="input" id="revQ" type="search" placeholder="Search notes, e.g. ZOPA, DMAIC, carve-out…" value="' + escapeHtml(S.revQ) + '" data-input="rev-q" autocomplete="off" aria-label="Search revision notes"></div>' +
+      '<div class="row rev-tools"><button class="btn btn-ghost btn-sm" data-action="rev-expand">' + icon('i-chevron', 'ic-sm') + 'Expand all</button>' +
+      '<button class="btn btn-ghost btn-sm" data-action="rev-collapse">' + icon('i-list', 'ic-sm') + 'Collapse all</button></div>';
+  }
+
+  function sizeWorkspace() {
+    var ws = $('.rev-workspace', app);
+    if (!ws) return;
+    var top = document.querySelector('.topbar');
+    var h = window.innerHeight - (top ? top.offsetHeight : 64) - 24;
+    ws.style.height = Math.max(420, h) + 'px';
+  }
+
+  function renderRevisionWorkspace(deck) {
+    var pr = deckProgress(deck);
+    app.innerHTML = '<div class="view rev-workspace accent-' + escapeHtml(deck.accent || 'violet') + '" style="--split:' + getSplit() + '%">' +
+      '<div class="card ws-bar">' +
+      '<div class="ws-deck"><span class="deck-icon sm">' + icon('i-slides') + '</span><div><strong>Study mode</strong><span class="small muted">Notes + slides side by side</span></div></div>' +
+      revTabs(deck) + revSearchAndTools() +
+      '<div class="deck-progress ws-prog" title="Sections marked as revised"><span class="small">Revised <span id="revProg-' + deck.id + '"><strong>' + pr.done + '</strong> / ' + pr.total + '</span></span>' +
+      progressBar(pct(pr.done, pr.total), deck.title + ' sections revised', true) + '</div>' +
+      '</div>' +
+      '<div class="ws-panes">' +
+      '<section class="ws-notes" id="revNotesPane" aria-label="' + escapeHtml(deck.title) + ' notes" tabindex="-1"><div id="revBody"></div></section>' +
+      '<div class="ws-divider" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize slides panel (arrow keys)" aria-valuemin="' + SPLIT_MIN + '" aria-valuemax="' + SPLIT_MAX + '" aria-valuenow="' + getSplit() + '" title="Drag to resize · double-click to reset"><span></span></div>' +
+      '<section class="ws-pdf" aria-label="Slides"><div id="revViewer"></div></section>' +
+      '</div></div>';
+    sizeWorkspace();
+    setSplit(getSplit(), false);
+    bindDivider();
+    renderRevisionViewer();
+    renderRevisionBody();
+  }
+
+  function bindDivider() {
+    var div = $('.ws-divider', app);
+    var panes = $('.ws-panes', app);
+    if (!div || !panes) return;
+    div.addEventListener('pointerdown', function (e) {
+      e.preventDefault();
+      var ws = $('.rev-workspace', app);
+      ws.classList.add('dragging');
+      try { div.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+      var move = function (ev) {
+        var r = panes.getBoundingClientRect();
+        setSplit(((r.right - ev.clientX) / r.width) * 100, false);
+      };
+      var up = function () {
+        ws.classList.remove('dragging');
+        div.removeEventListener('pointermove', move);
+        div.removeEventListener('pointerup', up);
+        div.removeEventListener('pointercancel', up);
+        setSplit(Number(div.getAttribute('aria-valuenow')), true);
+      };
+      div.addEventListener('pointermove', move);
+      div.addEventListener('pointerup', up);
+      div.addEventListener('pointercancel', up);
+    });
+    div.addEventListener('dblclick', function () { setSplit(SPLIT_DEFAULT, true); });
+    div.addEventListener('keydown', function (e) {
+      var v = Number(div.getAttribute('aria-valuenow'));
+      if (e.key === 'ArrowLeft') v += 5;        // divider moves left → slides get wider
+      else if (e.key === 'ArrowRight') v -= 5;
+      else if (e.key === 'Home') v = SPLIT_MAX;
+      else if (e.key === 'End') v = SPLIT_MIN;
+      else return;
+      e.preventDefault();
+      setSplit(v, true);
+    });
   }
 
   function currentDeck() {
@@ -1719,14 +1833,67 @@
     if (!v) { box.innerHTML = ''; return; }
     var deck = S.rev.decks.filter(function (d) { return d.id === v.deck; })[0];
     if (!deck) { box.innerHTML = ''; return; }
-    var src = deck.file + '#page=' + v.page + '&view=FitH';
-    box.innerHTML = '<section class="card viewer accent-' + escapeHtml(deck.accent || 'violet') + '" aria-label="PDF viewer">' +
-      '<div class="viewer-bar"><div class="viewer-title">' + icon('i-slides') + '<div><strong>' + escapeHtml(deck.title) + '</strong><span class="small muted"> · opened at PDF page ' + v.page + '</span></div></div>' +
-      '<div class="row"><a class="btn btn-ghost btn-sm" href="' + escapeHtml(src) + '" target="_blank" rel="noopener">' + icon('i-external', 'ic-sm') + 'Open in new tab</a>' +
-      '<a class="btn btn-ghost btn-sm" href="' + escapeHtml(deck.file) + '" download="' + escapeHtml(deck.downloadName || '') + '">' + icon('i-download', 'ic-sm') + 'Download</a>' +
-      '<button class="btn btn-ghost btn-sm" data-action="rev-close-viewer" aria-label="Close viewer">' + icon('i-x', 'ic-sm') + 'Close</button></div></div>' +
-      '<div class="viewer-frame"><iframe title="' + escapeHtml(deck.title) + ' slides" src="' + escapeHtml(src) + '" loading="lazy"></iframe></div>' +
-      '<p class="viewer-note small muted">' + icon('i-alert', 'ic-sm') + ' Some phones cannot show PDFs inside a page. If the slides don’t appear, use “Open in new tab” or “Download”.</p></section>';
+    var src = deck.file + '#page=' + v.page + '&view=FitH&navpanes=0';
+    // A fresh iframe each time so the PDF really jumps to the new page.
+    box.innerHTML = '<section class="viewer accent-' + escapeHtml(deck.accent || 'violet') + '" aria-label="PDF viewer">' +
+      '<div class="viewer-bar"><div class="viewer-title">' + icon('i-slides') + '<div><strong>' + escapeHtml(deck.title) + '</strong><span class="small muted" id="viewerPage"> · PDF page ' + v.page + ' of ' + (deck.pdfPages || '?') + '</span></div></div>' +
+      '<div class="row viewer-actions">' +
+      '<button class="btn btn-ghost btn-sm" data-action="rev-page" data-delta="-1" aria-label="Previous page"' + (v.page <= 1 ? ' disabled' : '') + '>' + icon('i-left', 'ic-sm') + '</button>' +
+      '<button class="btn btn-ghost btn-sm" data-action="rev-page" data-delta="1" aria-label="Next page"' + (deck.pdfPages && v.page >= deck.pdfPages ? ' disabled' : '') + '>' + icon('i-right', 'ic-sm') + '</button>' +
+      '<a class="btn btn-ghost btn-sm" href="' + escapeHtml(src) + '" target="_blank" rel="noopener" title="Open in new tab">' + icon('i-external', 'ic-sm') + '<span class="lbl">New tab</span></a>' +
+      '<a class="btn btn-ghost btn-sm" href="' + escapeHtml(deck.file) + '" download="' + escapeHtml(deck.downloadName || '') + '" title="Download PDF">' + icon('i-download', 'ic-sm') + '<span class="lbl">Download</span></a>' +
+      '<button class="btn btn-soft btn-sm" data-action="rev-close-viewer">' + icon('i-x', 'ic-sm') + (S.revSplit ? 'Exit study mode' : 'Close') + '</button></div></div>' +
+      '<div class="viewer-frame"><iframe title="' + escapeHtml(deck.title) + ' slides, page ' + v.page + '" src="' + escapeHtml(src) + '"></iframe></div>' +
+      (S.revSplit ? '' : '<p class="viewer-note small muted">' + icon('i-alert', 'ic-sm') + ' Some phones cannot show PDFs inside a page. If the slides don’t appear, use “New tab” or “Download”.</p>') +
+      '</section>';
+    markViewingSection();
+  }
+
+  /** Highlight the note section whose pages contain the PDF page being shown. */
+  function markViewingSection() {
+    var deck = currentDeck();
+    var page = S.revViewer && S.revViewer.page;
+    $all('.rev-section', app).forEach(function (el) { el.classList.remove('is-viewing'); });
+    if (!deck || !page) return;
+    deck.sections.forEach(function (s) {
+      if (page >= s.pages[0] && page <= s.pages[1]) {
+        var el = document.getElementById(s.id);
+        if (el) el.classList.add('is-viewing');
+      }
+    });
+  }
+
+  /** Show a PDF page: swap only the iframe when the viewer is already open, otherwise switch layout. */
+  function showRevisionPage(deckId, page, fromSection) {
+    if (deckId !== S.revDeck) { navigate('revision/' + deckId + '/view/' + page); return; }
+    var wasOpen = !!S.revViewer;
+    setRevHash(revHash(deckId, page));
+    if (wasOpen) {
+      S.revViewer.page = page;
+      renderRevisionViewer();
+      return;
+    }
+    renderRevision();
+    if (fromSection) {
+      var sec = document.getElementById(fromSection);
+      if (sec && S.revSplit) sec.scrollIntoView({ block: 'start', behavior: 'instant' });
+    }
+    if (!S.revSplit) return;
+    window.scrollTo(0, 0);
+  }
+
+  function closeRevisionViewer() {
+    var focusSec = null;
+    var viewing = $('.rev-section.is-viewing', app);
+    if (viewing) focusSec = viewing.id;
+    setRevHash(revHash(S.revDeck, 0));
+    renderRevision();
+    var target = focusSec && document.getElementById(focusSec);
+    if (target) {
+      target.scrollIntoView({ block: 'start', behavior: 'instant' });
+      var btn = $('[data-action="rev-view"]', target);
+      if (btn) btn.focus({ preventScroll: true });
+    }
   }
 
   function renderRevisionBody() {
@@ -1782,7 +1949,7 @@
         '<span class="sec-chips"><span class="badge">' + pageLabel(sec.pages) + '</span>' + (done ? '<span class="badge badge-good">' + icon('i-check', 'ic-sm') + 'Revised</span>' : '') + '</span>' +
         '<svg class="ic chev" aria-hidden="true"><use href="#i-chevron"/></svg></summary>' +
         '<div class="sec-body"><div class="sec-actions">' +
-        '<button class="btn btn-soft btn-sm" data-action="rev-view" data-deck="' + deck.id + '" data-page="' + sec.pages[0] + '">' + icon('i-eye', 'ic-sm') + 'View slides (' + pageLabel(sec.pages) + ')</button>' +
+        '<button class="btn btn-soft btn-sm" data-action="rev-view" data-deck="' + deck.id + '" data-page="' + sec.pages[0] + '" data-sec="' + escapeHtml(sec.id) + '">' + icon('i-eye', 'ic-sm') + (S.revViewer ? 'Show in slides' : 'View slides') + ' (' + pageLabel(sec.pages) + ')</button>' +
         (qCount ? '<button class="btn btn-ghost btn-sm" data-action="rev-practice" data-topic="' + escapeHtml(key) + '">' + icon('i-play', 'ic-sm') + 'Practise ' + qCount + ' questions</button>' : '') +
         '<button class="btn btn-sm ' + (done ? 'btn-good' : 'btn-ghost') + '" data-action="rev-toggle" data-sec="' + escapeHtml(sec.id) + '" aria-pressed="' + done + '">' + icon(done ? 'i-check-circle' : 'i-check', 'ic-sm') + (done ? 'Revised' : 'Mark as revised') + '</button></div>' +
         '<ul class="points">' + (sec.points || []).map(function (p) { return '<li>' + richText(p, tokens) + '</li>'; }).join('') + '</ul>' + table +
@@ -1809,7 +1976,8 @@
       ? '<div class="card empty"><div class="art">' + icon('i-search') + '</div><h2>No notes match</h2><p>Try another keyword, or switch decks — the search covers the deck shown.</p><button class="btn btn-primary" data-action="rev-clear-search">Clear search</button></div>'
       : '';
 
-    box.innerHTML = searchBar + '<div class="rev-layout">' + toc + '<div class="rev-main">' + (empty || (overview + secHtml + formulaHtml + conceptHtml)) + '</div></div>';
+    box.innerHTML = searchBar + '<div class="rev-layout' + (S.revSplit ? ' compact' : '') + '">' + toc + '<div class="rev-main">' + (empty || (overview + secHtml + formulaHtml + conceptHtml)) + '</div></div>';
+    markViewingSection();
   }
 
   function updateRevisionProgress() {
@@ -2028,20 +2196,18 @@
     'rev-view': function (el) {
       var deckId = el.getAttribute('data-deck');
       var page = Math.max(1, Number(el.getAttribute('data-page')) || 1);
-      S.revViewer = { deck: deckId, page: page };
-      if (deckId !== S.revDeck) {
-        S.revDeck = deckId;
-        navigate('revision/' + deckId);
-      } else {
-        renderRevisionViewer();
-      }
-      var box = document.getElementById('revViewer');
-      if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showRevisionPage(deckId, page, el.getAttribute('data-sec'));
     },
-    'rev-close-viewer': function () {
-      S.revViewer = null;
-      renderRevisionViewer();
+    'rev-page': function (el) {
+      if (!S.revViewer) return;
+      var deck = currentDeck();
+      var page = S.revViewer.page + Number(el.getAttribute('data-delta'));
+      page = Math.max(1, Math.min(deck.pdfPages || page, page));
+      showRevisionPage(deck.id, page, null);
+      var again = $('[data-action="rev-page"][data-delta="' + el.getAttribute('data-delta') + '"]', app);
+      if (again && !again.disabled) again.focus({ preventScroll: true });
     },
+    'rev-close-viewer': closeRevisionViewer,
     'rev-toggle': function (el) {
       var id = el.getAttribute('data-sec');
       var r = store().revised;
@@ -2186,6 +2352,7 @@
     var isChoice = tag === 'INPUT' && (t.type === 'checkbox' || t.type === 'radio');
     if ((tag === 'INPUT' && !isChoice) || tag === 'TEXTAREA' || tag === 'SELECT' || t.isContentEditable) return;
     if (e.key === '?') { e.preventDefault(); showShortcuts(); return; }
+    if (e.key === 'Escape' && S.route.name === 'revision' && S.revViewer) { e.preventDefault(); closeRevisionViewer(); return; }
     var rn = S.route.name;
     if ((rn !== 'practice' && rn !== 'review') || !S.ctx || !$('#qText', app)) return;
     var ctx = S.ctx;
@@ -2273,6 +2440,16 @@
     });
     document.addEventListener('keydown', onKeyDown);
     window.addEventListener('pagehide', save);
+    // Switch between split study mode and the full-screen sheet when the window crosses the breakpoint.
+    var resizeTimer = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        if (S.route.name !== 'revision' || !S.rev) return;
+        if (S.revViewer && isWideScreen() !== S.revSplit) renderRevision();
+        else if (S.revSplit) sizeWorkspace();
+      }, 150);
+    });
     document.addEventListener('visibilitychange', function () { if (document.hidden) save(); });
 
     if (!window.QuestionValidator) {

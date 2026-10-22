@@ -644,12 +644,70 @@ details.disclosure summary::marker { color: var(--muted); }
 .rev-search { flex: 1 1 260px; min-width: 0; }
 .rev-tools { gap: .4rem; }
 
-.viewer { margin-top: 1rem; padding: 0; overflow: hidden; border-top: 4px solid var(--da); }
+.viewer { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--surface); border-top: 4px solid var(--da); }
+.viewer-actions { gap: .35rem; }
+.viewer-frame { flex: 1; min-height: 0; }
+.viewer-frame iframe { height: 100% !important; }
+
+/* Study mode: notes beside the PDF (desktop) */
+body.rev-split { overflow: hidden; }
+body.rev-split .container { max-width: none; padding: 12px 16px; }
+body.rev-split .footer { display: none; }
+.rev-workspace { --split: 60%; display: flex; flex-direction: column; gap: 10px; height: calc(100vh - 90px); min-height: 420px; }
+.ws-bar { display: flex; align-items: center; gap: .75rem; padding: .55rem .75rem; flex-wrap: nowrap; }
+.ws-bar .rev-tabs a { min-width: 0; padding: .35rem .75rem; white-space: nowrap; }
+.ws-bar .rev-search { flex: 1 1 200px; }
+.ws-bar .rev-search .input { min-height: 38px; }
+.ws-bar .rev-tools .btn span, .ws-bar .rev-tools .btn { white-space: nowrap; }
+.ws-deck { display: flex; align-items: center; gap: .55rem; flex: none; }
+.ws-deck > div { display: flex; flex-direction: column; line-height: 1.15; }
+.ws-deck strong { font-size: .95rem; }
+.deck-icon.sm { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg, var(--da), var(--db)); color: #fff; }
+.deck-icon.sm .ic { width: 18px; height: 18px; }
+.ws-prog { flex: 0 0 150px; background: var(--surface-2); color: var(--ink-2); padding: .4rem .6rem; }
+.ws-prog .progress { background: var(--surface-3); }
+.ws-prog .progress > span { background: linear-gradient(90deg, var(--da), var(--db)); }
+.ws-panes { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 14px var(--split); }
+.ws-notes { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px 6px 24px 2px; scroll-behavior: smooth; outline: none; }
+.ws-notes .rev-layout { margin-top: 0; }
+.ws-notes .rev-section, .ws-notes .rev-block, .ws-notes .rev-overview { scroll-margin-top: 8px; }
+.ws-pdf { min-height: 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--surface); }
+.ws-pdf #revViewer { height: 100%; }
+.ws-pdf .viewer-bar { padding: .5rem .75rem; }
+.ws-pdf .viewer-title > div { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-divider { position: relative; cursor: col-resize; touch-action: none; display: grid; place-items: center; border-radius: 8px; }
+.ws-divider span { width: 4px; height: 56px; border-radius: 999px; background: var(--border-strong); transition: background .15s, height .15s; }
+.ws-divider:hover span, .ws-divider:focus-visible span, .rev-workspace.dragging .ws-divider span { background: var(--da); height: 96px; }
+.rev-workspace.dragging { cursor: col-resize; user-select: none; }
+.rev-workspace.dragging iframe { pointer-events: none; }
+.rev-section.is-viewing { border-color: var(--da); box-shadow: 0 0 0 2px color-mix(in srgb, var(--da) 35%, transparent), var(--shadow); }
+/* tag sits on the card edge so it never changes the section's height (no reading jump) */
+.rev-section.is-viewing { position: relative; }
+.rev-section.is-viewing::before { content: "In slides →"; position: absolute; top: 0; left: 1.15rem; z-index: 1; font-size: .66rem; font-weight: 800; letter-spacing: .03em; color: #fff; background: var(--da, var(--violet)); padding: .05rem .5rem; border-radius: 0 0 8px 8px; pointer-events: none; }
+.view.no-anim { animation: none; }
+
+/* compact notes layout (study mode): contents become chips above the notes */
+.rev-layout.compact { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+.rev-layout.compact .toc { position: static; max-height: none; padding: .75rem; }
+.rev-layout.compact .toc ol { flex-direction: row; flex-wrap: wrap; gap: .35rem; }
+.rev-layout.compact .toc button { width: auto; background: var(--surface-2); padding: .3rem .55rem; font-size: .78rem; }
+.rev-layout.compact .toc button span:last-child { max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rev-layout.compact .formula-grid { grid-template-columns: minmax(0, 1fr); }
+.rev-layout.compact .concept-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rev-layout.compact .num-cells { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.rev-layout.compact .rev-table tbody th { white-space: normal; }
+
+/* Phones / tablets: the PDF opens as a full-screen sheet */
+body.rev-sheet-open { overflow: hidden; }
+.rev-sheet { position: fixed; inset: 0; z-index: 85; background: var(--bg); display: flex; flex-direction: column; animation: viewIn .25s var(--ease); }
+.rev-sheet #revViewer { flex: 1; min-height: 0; }
+.rev-sheet .viewer { border-radius: 0; }
+.rev-sheet .viewer-bar { padding: .6rem .75rem calc(.6rem); }
 .viewer-bar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .75rem 1rem; border-bottom: 1px solid var(--border); }
 .viewer-title { display: flex; align-items: center; gap: .55rem; color: var(--dink); }
 .viewer-title strong { color: var(--ink); }
 .viewer-frame { background: var(--surface-2); }
-.viewer-frame iframe { display: block; width: 100%; height: min(78vh, 760px); border: 0; }
+.viewer-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
 .viewer-note { display: flex; align-items: center; gap: .4rem; margin: 0; padding: .6rem 1rem; }
 
 .rev-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 1.25rem; margin-top: 1.25rem; align-items: start; }
@@ -810,7 +868,6 @@ details.disclosure summary::marker { color: var(--muted); }
   .sec-body { padding: 0 .85rem .9rem; }
   .sec-actions .btn { flex: 1 1 auto; }
   .rev-table tbody th { white-space: normal; }
-  .viewer-frame iframe { height: 60vh; }
   .deck-card { padding: 1.1rem; }
   .bottom-nav a { font-size: .62rem; }
 }
@@ -833,3 +890,8 @@ details.disclosure summary::marker { color: var(--muted); }
   .topbar, .bottom-nav, .footer, .actions, .side { display: none !important; }
   body { background: #fff; }
 }
+
+/* Study-mode toolbar: drop secondary bits as the window narrows */
+@media (max-width: 1400px) { .ws-deck > div { display: none; } }
+@media (max-width: 1260px) { .ws-prog { display: none; } .ws-bar .rev-tools .btn { padding: .4rem .55rem; } }
+@media (max-width: 1120px) { .ws-bar .rev-tabs a { font-size: .8rem; padding: .35rem .5rem; } .ws-pdf .viewer-actions .lbl { display: none; } }
