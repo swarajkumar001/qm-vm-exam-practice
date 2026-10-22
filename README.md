@@ -4,7 +4,9 @@ An interactive practice site for **Quality Management – Session 11** and **Ven
 
 It is a static website (HTML, CSS, vanilla JavaScript and one JSON file). There is no backend, database, build step, or `npm install`, so it runs on **GitHub Pages for free**.
 
-- **334 questions**: 127 MSQs (multiple select) and 207 MCQs (single answer)
+- **509 questions**: 302 MSQs (multiple select) and 207 MCQs (single answer)
+  - `msq001`–`msq127` and all MCQs come from the original question bank PDF
+  - `msq128`–`msq302` (175 MSQs) were written directly from the two lecture slide decks
 - Every question has four options, an answer key, an explanation for each option, and a source reference (PDF page and slide)
 - Instant answer checking: an MSQ is only correct when your selected set exactly matches the answer key
 - 10 practice modes, an exam mode with an optional timer, results and review, search, bookmarks, and light/dark themes
@@ -220,7 +222,8 @@ Progress, bookmarks, history and settings are stored in your browser's **LocalSt
 ---
 
 ## Known limitations
-- Questions were taken from the provided `MSQ_MCQ_Question_Bank.pdf`, which cites the two lecture PDFs. Answer keys were cross-checked against that PDF's own answer key. Facts and numerical answers were spot-checked against the slides, but not every one of the 334 questions was re-verified by hand.
+- Questions 1–334 were taken from the provided `MSQ_MCQ_Question_Bank.pdf`, which cites the two lecture PDFs. Answer keys were cross-checked against that PDF's own answer key. Facts and numerical answers were spot-checked against the slides, but not every one of those 334 questions was re-verified by hand.
+- The 175 added MSQs (`msq128`–`msq302`) were written from the slide text and the image-only slides (SERVQUAL, Gap Model, linkages, BATNA/ZOPA). Each has 2–3 correct options and at least one incorrect option. Wrong options are plausible distractors taken from other parts of the slides, and every option's explanation cites the slide. Numerical questions (e.g. "1,000,000 transactions at 99.99%") apply the slides' own formulas to new numbers.
 - Difficulty: the source tags (Easy, Medium, Hard, Tricky, Numerical, Application, Conceptual) are mapped to Easy/Medium/Hard (Tricky → Hard; Numerical/Application/Conceptual → Medium). The original tag is still shown as a badge. Most questions are therefore "Medium".
 - 20 MSQs have either one correct option or all four correct, as in the source bank (see "MSQ rule" above).
 - Some per-option explanations in the source are brief (e.g. "not supported by the source").
