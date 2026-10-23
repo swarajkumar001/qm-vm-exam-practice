@@ -20,7 +20,10 @@
         {
           "id": "qm-define",
           "title": "What is quality? Garvin’s lenses and dimensions",
-          "pages": [4, 8],
+          "pages": [
+            4,
+            8
+          ],
           "topic": "Defining Quality (Garvin)",
           "points": [
             "**Five lenses (Garvin, 1984, Sloan Management Review):** **Transcendent**: innate excellence, “I know it when I see it” (Taj Mahal Palace). **Product-based**: a measurable amount of an attribute, more is better (thread count, megapixels). **User-based**: fitness for use for this customer (Alto for a first-time city buyer). **Manufacturing-based**: conformance to requirements, right first time (Six Sigma, zero defects). **Value-based**: performance at an acceptable price (Jio, IndiGo).",
@@ -30,16 +33,52 @@
           ],
           "table": {
             "caption": "Eight dimensions at a glance",
-            "head": ["Dimension", "Meaning", "Slide example"],
+            "head": [
+              "Dimension",
+              "Meaning",
+              "Slide example"
+            ],
             "rows": [
-              ["Performance", "Primary operating characteristics", "Car acceleration; app load time"],
-              ["Features", "Secondary bells and whistles", "Sunroof; dark mode"],
-              ["Reliability", "Probability of failure in a period", "MTBF; uptime"],
-              ["Conformance", "Meets established specifications", "Defect rate; SLA compliance"],
-              ["Durability", "Product life before replacement", "Godrej Storage"],
-              ["Serviceability", "Speed, courtesy, ease of repair", "Service network; ticket TTR"],
-              ["Aesthetics", "Look, feel, sound, taste", "Industrial design; UI polish"],
-              ["Perceived quality", "Reputation, brand, inference", "“Made in Japan” in the 1980s"]
+              [
+                "Performance",
+                "Primary operating characteristics",
+                "Car acceleration; app load time"
+              ],
+              [
+                "Features",
+                "Secondary bells and whistles",
+                "Sunroof; dark mode"
+              ],
+              [
+                "Reliability",
+                "Probability of failure in a period",
+                "MTBF; uptime"
+              ],
+              [
+                "Conformance",
+                "Meets established specifications",
+                "Defect rate; SLA compliance"
+              ],
+              [
+                "Durability",
+                "Product life before replacement",
+                "Godrej Storage"
+              ],
+              [
+                "Serviceability",
+                "Speed, courtesy, ease of repair",
+                "Service network; ticket TTR"
+              ],
+              [
+                "Aesthetics",
+                "Look, feel, sound, taste",
+                "Industrial design; UI polish"
+              ],
+              [
+                "Perceived quality",
+                "Reputation, brand, inference",
+                "“Made in Japan” in the 1980s"
+              ]
             ]
           },
           "tip": "Trap: Six Sigma / zero defects = **manufacturing-based**, not value-based. “Made in Japan” = **perceived quality**, not aesthetics. Lenses = 1984 SMR; dimensions = 1987 HBR."
@@ -47,7 +86,10 @@
         {
           "id": "qm-999",
           "title": "The 99.9% trap: scale changes everything",
-          "pages": [9, 9],
+          "pages": [
+            9,
+            9
+          ],
           "topic": "The 99.9% Trap and Scale",
           "points": [
             "**UPI:** ~698 million transactions/day (21.63 bn in Dec 2025). At 99.9% → **~6.98 lakh failed payments a day**. At Six Sigma (3.4 per million) → **~2,400**.",
@@ -59,7 +101,10 @@
         {
           "id": "qm-gurus",
           "title": "A century of quality and the seven gurus",
-          "pages": [12, 13],
+          "pages": [
+            12,
+            13
+          ],
           "topic": "History and the Quality Gurus",
           "points": [
             "**1920s** Inspection & SQC: Shewhart’s control chart at Bell Labs (1924). **1950s** Japan learns QC: Deming (1950) and Juran (1954) lecture to JUSE; Deming Prize (1951); Feigenbaum’s Total Quality Control.",
@@ -68,15 +113,55 @@
           ],
           "table": {
             "caption": "The gurus table",
-            "head": ["Thinker", "Big idea", "Signature tool", "Quality means…"],
+            "head": [
+              "Thinker",
+              "Big idea",
+              "Signature tool",
+              "Quality means…"
+            ],
             "rows": [
-              ["Shewhart", "Variation has common and assignable causes", "Control chart; PDCA origins", "A process in statistical control"],
-              ["Deming", "~94% of problems belong to the system (management)", "PDCA cycle; 14 Points", "Continual improvement of the system"],
-              ["Juran", "Trilogy: planning, control, improvement", "Pareto: the “vital few”", "Fitness for use"],
-              ["Feigenbaum", "Quality is everyone’s job, across functions", "Total Quality Control; cost of quality", "Customer-defined, company-wide"],
-              ["Crosby", "Quality is free; non-conformance costs", "Zero defects; price of non-conformance", "Conformance to requirements"],
-              ["Ishikawa", "Front-line workers can solve problems", "Fishbone; 7 tools; quality circles", "Company-wide quality control"],
-              ["Taguchi", "Any deviation from target is a loss to society", "Quality loss function; robust design", "Minimum deviation from target"]
+              [
+                "Shewhart",
+                "Variation has common and assignable causes",
+                "Control chart; PDCA origins",
+                "A process in statistical control"
+              ],
+              [
+                "Deming",
+                "~94% of problems belong to the system (management)",
+                "PDCA cycle; 14 Points",
+                "Continual improvement of the system"
+              ],
+              [
+                "Juran",
+                "Trilogy: planning, control, improvement",
+                "Pareto: the “vital few”",
+                "Fitness for use"
+              ],
+              [
+                "Feigenbaum",
+                "Quality is everyone’s job, across functions",
+                "Total Quality Control; cost of quality",
+                "Customer-defined, company-wide"
+              ],
+              [
+                "Crosby",
+                "Quality is free; non-conformance costs",
+                "Zero defects; price of non-conformance",
+                "Conformance to requirements"
+              ],
+              [
+                "Ishikawa",
+                "Front-line workers can solve problems",
+                "Fishbone; 7 tools; quality circles",
+                "Company-wide quality control"
+              ],
+              [
+                "Taguchi",
+                "Any deviation from target is a loss to society",
+                "Quality loss function; robust design",
+                "Minimum deviation from target"
+              ]
             ]
           },
           "tip": "Fitness for use = **Juran** (and the user-based lens). Conformance to requirements = **Crosby**. Pareto = Juran; fishbone = Ishikawa; loss function = Taguchi."
@@ -84,7 +169,10 @@
         {
           "id": "qm-variation",
           "title": "Variation: signal or noise?",
-          "pages": [14, 14],
+          "pages": [
+            14,
+            14
+          ],
           "topic": "Variation and Control Charts",
           "points": [
             "**Common cause:** inherent in the system, random, many small sources; points stay within the limits → **fix the system (management’s job)**.",
@@ -97,7 +185,10 @@
         {
           "id": "qm-servqual",
           "title": "Service quality: SERVQUAL and the Gap Model",
-          "pages": [15, 21],
+          "pages": [
+            15,
+            21
+          ],
           "topic": "Service Quality (SERVQUAL and the Gap Model)",
           "points": [
             "**PZB** = A. Parasuraman, Valerie Zeithaml, Leonard Berry.",
@@ -108,16 +199,43 @@
           ],
           "table": {
             "caption": "Key SERVQUAL definitions",
-            "head": ["Determinant", "Definition"],
+            "head": [
+              "Determinant",
+              "Definition"
+            ],
             "rows": [
-              ["Tangibles", "Physical evidence of the service"],
-              ["Reliability", "Consistency of performance and dependability"],
-              ["Responsiveness", "Willingness or readiness to provide service"],
-              ["Credibility", "Trustworthiness, believability, honesty"],
-              ["Security", "Freedom from danger, risk or doubt"],
-              ["Competence", "Required skills and knowledge"],
-              ["Courtesy", "Politeness, respect, consideration, friendliness"],
-              ["Access", "Approachability and ease of contact"]
+              [
+                "Tangibles",
+                "Physical evidence of the service"
+              ],
+              [
+                "Reliability",
+                "Consistency of performance and dependability"
+              ],
+              [
+                "Responsiveness",
+                "Willingness or readiness to provide service"
+              ],
+              [
+                "Credibility",
+                "Trustworthiness, believability, honesty"
+              ],
+              [
+                "Security",
+                "Freedom from danger, risk or doubt"
+              ],
+              [
+                "Competence",
+                "Required skills and knowledge"
+              ],
+              [
+                "Courtesy",
+                "Politeness, respect, consideration, friendliness"
+              ],
+              [
+                "Access",
+                "Approachability and ease of contact"
+              ]
             ]
           },
           "tip": "Reliability is the only label in BOTH Garvin’s eight dimensions and the SERVQUAL ten. Referred customers is a **+$** outcome."
@@ -125,7 +243,10 @@
         {
           "id": "qm-coq",
           "title": "Economics of quality: cost of quality",
-          "pages": [22, 25],
+          "pages": [
+            22,
+            25
+          ],
           "topic": "Economics and Cost of Quality",
           "points": [
             "Crosby: “Quality is free. It’s not a gift, but it is free.”",
@@ -136,12 +257,27 @@
           ],
           "table": {
             "caption": "Card-sort answer key",
-            "head": ["Item", "Category"],
+            "head": [
+              "Item",
+              "Category"
+            ],
             "rows": [
-              ["Training call-centre agents; FMEA in design; poka-yoke fixture", "Prevention"],
-              ["Peer code review; nightly regression suite; annual supplier audit", "Appraisal"],
-              ["Re-stitching a garment batch; scrapping a tablet batch; hot-fix found in UAT", "Internal failure"],
-              ["Phone replaced under warranty; refunds & SLA penalties after outage; customers leaving after 1-star reviews", "External failure"]
+              [
+                "Training call-centre agents; FMEA in design; poka-yoke fixture",
+                "Prevention"
+              ],
+              [
+                "Peer code review; nightly regression suite; annual supplier audit",
+                "Appraisal"
+              ],
+              [
+                "Re-stitching a garment batch; scrapping a tablet batch; hot-fix found in UAT",
+                "Internal failure"
+              ],
+              [
+                "Phone replaced under warranty; refunds & SLA penalties after outage; customers leaving after 1-star reviews",
+                "External failure"
+              ]
             ]
           },
           "tip": "A bug found in **UAT before go-live** is **internal** failure, not external. Code review is **appraisal**, not prevention."
@@ -149,7 +285,10 @@
         {
           "id": "qm-pay",
           "title": "Does quality pay? The evidence",
-          "pages": [26, 26],
+          "pages": [
+            26,
+            26
+          ],
           "topic": "Does Quality Pay? The Evidence",
           "points": [
             "**PAYS: Hendricks & Singhal (1997)**, ~600 award winners vs matched controls over 10 years: operating income growth **mean 107 / median 48**, sales growth **mean 64 / median 24** (% points higher).",
@@ -161,7 +300,10 @@
         {
           "id": "qm-toolkits",
           "title": "Toolkits: TQM, Lean/TPS, Six Sigma",
-          "pages": [29, 31],
+          "pages": [
+            29,
+            31
+          ],
           "topic": "TQM, Lean/TPS and Six Sigma",
           "points": [
             "**TQM, six principles:** customer focus, **leadership commitment**, **employee empowerment**, process thinking (y = f(x)), continuous improvement (kaizen), fact-based decisions. Powell: the tacit, hard-to-imitate core (culture, empowerment, commitment) is where TQM succeeds or fails.",
@@ -174,7 +316,10 @@
         {
           "id": "qm-tools",
           "title": "Ishikawa’s seven tools, fishbone and Pareto",
-          "pages": [32, 35],
+          "pages": [
+            32,
+            35
+          ],
           "topic": "Ishikawa’s Seven Tools, Fishbone and Pareto",
           "points": [
             "**7 tools:** Fishbone (root causes by category) · Check sheet (collect data at source) · Histogram (shape of variation) · Pareto chart (vital few causes) · Control chart (signal vs noise over time) · Scatter diagram (test x→y) · Stratification (split by shift, region, product, release).",
@@ -185,7 +330,10 @@
         {
           "id": "qm-standards",
           "title": "Standards, maturity models, awards and digital quality",
-          "pages": [36, 37],
+          "pages": [
+            36,
+            37
+          ],
           "topic": "Standards, Maturity Models, Awards and Digital Quality",
           "points": [
             "**CMMI levels:** 1 Initial · 2 Managed · 3 **Defined** (organisation-wide standard process) · 4 **Quantitatively managed** (statistically controlled) · 5 **Optimizing** (continuous improvement).",
@@ -197,30 +345,72 @@
         {
           "id": "qm-cases",
           "title": "Cases: India and global, IT and non-IT",
-          "pages": [39, 46],
+          "pages": [
+            39,
+            46
+          ],
           "topic": "Cases (India and Global)",
           "points": [
             "Each case asks one question: **was quality designed into the system, or bolted on?**"
           ],
           "table": {
             "caption": "Cases at a glance",
-            "head": ["Case", "Key facts", "Quality lens"],
+            "head": [
+              "Case",
+              "Key facts",
+              "Quality lens"
+            ],
             "rows": [
-              ["Mumbai dabbawalas", "~5,000 workers, ~130,000 lunches/day, 0 IT; units of ~25; train timetables = takt time; colour-and-symbol code", "Standardisation, poka-yoke and culture, not technology"],
-              ["Deming Prize leaders vs Ranbaxy", "Sundaram Clayton first Indian winner (1998); 2012 Grand Prizes all Indian; Ranbaxy (2013) paid US$500M over adulterated drugs and false test dates", "A data-integrity failure is a quality failure"],
-              ["Indian IT (Ramasubbu 2008)", "42 projects at a CMM-5 vendor: +1% dispersion → −1.5% quality, −0.7% productivity; +1% learning → +0.9% quality, +0.6% productivity", "CMMI’s real value is learning infrastructure"],
-              ["UPI outage (12 Apr 2025)", "~5 h outage; banks spammed ‘Check Transaction’ (allowed once per 90 s); response limits 30s → 10–15s; 50 balance checks/day", "System quality = weakest participant’s conformance"],
-              ["Toyota recalls 2009–10", "~8.5M vehicles (floor mats, sticky pedals); Akio Toyoda testified Feb 2010; US$1.2B DOJ settlement (2014)", "Quality capability is built in people and scales slowly"],
-              ["Boeing 737 MAX-9 (Jan 2024)", "Door plug blew out; 4 bolts never installed; 171 jets grounded; cap 38/month → 42 (Oct 2025)", "Appraisal and prevention both failed"],
-              ["CrowdStrike (19 Jul 2024)", "8.5M Windows devices; reverted after 78 min; ~$5.4B Fortune-500 losses; Channel File 291", "Deployment-process failure: use canaries"],
-              ["Knight Capital (1 Aug 2012)", "45 min runaway trading; 1 of 8 servers not updated; $460M+ loss", "No written deploy procedure, no second-person review"]
+              [
+                "Mumbai dabbawalas",
+                "~5,000 workers, ~130,000 lunches/day, 0 IT; units of ~25; train timetables = takt time; colour-and-symbol code",
+                "Standardisation, poka-yoke and culture, not technology"
+              ],
+              [
+                "Deming Prize leaders vs Ranbaxy",
+                "Sundaram Clayton first Indian winner (1998); 2012 Grand Prizes all Indian; Ranbaxy (2013) paid US$500M over adulterated drugs and false test dates",
+                "A data-integrity failure is a quality failure"
+              ],
+              [
+                "Indian IT (Ramasubbu 2008)",
+                "42 projects at a CMM-5 vendor: +1% dispersion → −1.5% quality, −0.7% productivity; +1% learning → +0.9% quality, +0.6% productivity",
+                "CMMI’s real value is learning infrastructure"
+              ],
+              [
+                "UPI outage (12 Apr 2025)",
+                "~5 h outage; banks spammed ‘Check Transaction’ (allowed once per 90 s); response limits 30s → 10–15s; 50 balance checks/day",
+                "System quality = weakest participant’s conformance"
+              ],
+              [
+                "Toyota recalls 2009–10",
+                "~8.5M vehicles (floor mats, sticky pedals); Akio Toyoda testified Feb 2010; US$1.2B DOJ settlement (2014)",
+                "Quality capability is built in people and scales slowly"
+              ],
+              [
+                "Boeing 737 MAX-9 (Jan 2024)",
+                "Door plug blew out; 4 bolts never installed; 171 jets grounded; cap 38/month → 42 (Oct 2025)",
+                "Appraisal and prevention both failed"
+              ],
+              [
+                "CrowdStrike (19 Jul 2024)",
+                "8.5M Windows devices; reverted after 78 min; ~$5.4B Fortune-500 losses; Channel File 291",
+                "Deployment-process failure: use canaries"
+              ],
+              [
+                "Knight Capital (1 Aug 2012)",
+                "45 min runaway trading; 1 of 8 servers not updated; $460M+ loss",
+                "No written deploy procedure, no second-person review"
+              ]
             ]
           }
         },
         {
           "id": "qm-synthesis",
           "title": "Synthesis: seven ideas to carry out of the room",
-          "pages": [48, 49],
+          "pages": [
+            48,
+            49
+          ],
           "topic": "Synthesis",
           "points": [
             "1 **Choose your definition** (Garvin) · 2 **Fix the system, not the person** (Deming) · 3 **Prevention is cheapest** (Feigenbaum, Crosby) · 4 **Scale changes everything** (99.9% at 700M/day) · 5 **Culture beats toolkits** (Powell) · 6 **Quality and cost can move together** (Aravind, Narayana, Toyota) · 7 **Mind the exploration trap** (Benner & Tushman).",
@@ -229,29 +419,118 @@
         }
       ],
       "formulas": [
-        { "name": "Failures per day", "expr": "Failures = Volume × (1 − success rate)", "example": "698,000,000 × (1 − 0.999) = 698,000 ≈ 6.98 lakh" },
-        { "name": "Six Sigma defects", "expr": "Defects = Volume × 3.4 / 1,000,000", "example": "130,000 × 3.4 / 10⁶ ≈ 0.44 lunches a day" },
-        { "name": "Control limits", "expr": "UCL / LCL = mean ± 3σ", "example": "mean 1.0%, σ 0.15% → UCL 1.45%, LCL 0.55%" },
-        { "name": "Pareto cumulative share", "expr": "Cumulative %ₖ = (n₁ + … + nₖ) / total × 100", "example": "(412 + 236 + 158) / 1,000 = 80.6%" },
-        { "name": "1-10-100 rule", "expr": "Prevent : catch internally : customer finds = 1 : 10 : 100", "example": "₹50,000 if the customer finds it → ₹500 to prevent" },
-        { "name": "Yield from DPMO", "expr": "Yield = 1 − DPMO / 1,000,000", "example": "2σ: 1 − 308,537/10⁶ ≈ 69.1%" },
-        { "name": "Error budget (SLO)", "expr": "Allowed downtime = (1 − SLO) × 43,200 min (30 days)", "example": "99.9% → 0.001 × 43,200 ≈ 43 minutes" }
+        {
+          "name": "Failures per day",
+          "expr": "Failures = Volume × (1 − success rate)",
+          "example": "698,000,000 × (1 − 0.999) = 698,000 ≈ 6.98 lakh"
+        },
+        {
+          "name": "Six Sigma defects",
+          "expr": "Defects = Volume × 3.4 / 1,000,000",
+          "example": "130,000 × 3.4 / 10⁶ ≈ 0.44 lunches a day"
+        },
+        {
+          "name": "Control limits",
+          "expr": "UCL / LCL = mean ± 3σ",
+          "example": "mean 1.0%, σ 0.15% → UCL 1.45%, LCL 0.55%"
+        },
+        {
+          "name": "Pareto cumulative share",
+          "expr": "Cumulative %ₖ = (n₁ + … + nₖ) / total × 100",
+          "example": "(412 + 236 + 158) / 1,000 = 80.6%"
+        },
+        {
+          "name": "1-10-100 rule",
+          "expr": "Prevent : catch internally : customer finds = 1 : 10 : 100",
+          "example": "₹50,000 if the customer finds it → ₹500 to prevent"
+        },
+        {
+          "name": "Yield from DPMO",
+          "expr": "Yield = 1 − DPMO / 1,000,000",
+          "example": "2σ: 1 − 308,537/10⁶ ≈ 69.1%"
+        },
+        {
+          "name": "Error budget (SLO)",
+          "expr": "Allowed downtime = (1 − SLO) × 43,200 min (30 days)",
+          "example": "99.9% → 0.001 × 43,200 ≈ 43 minutes"
+        }
       ],
-      "dpmo": [["2σ", "308,537"], ["3σ", "66,807"], ["4σ", "6,210"], ["5σ", "233"], ["6σ", "3.4"]],
+      "dpmo": [
+        [
+          "2σ",
+          "308,537"
+        ],
+        [
+          "3σ",
+          "66,807"
+        ],
+        [
+          "4σ",
+          "6,210"
+        ],
+        [
+          "5σ",
+          "233"
+        ],
+        [
+          "6σ",
+          "3.4"
+        ]
+      ],
       "concepts": [
-        { "term": "Common cause", "def": "Random variation built into the system; fix the system." },
-        { "term": "Special cause", "def": "Assignable event outside the limits; find and remove it." },
-        { "term": "Tampering", "def": "Treating noise as signal, which increases variation." },
-        { "term": "Jidoka / andon", "def": "Stop the line on an abnormality; build quality in." },
-        { "term": "Poka-yoke", "def": "Mistake-proofing so the error cannot happen (Shingo)." },
-        { "term": "Kaizen", "def": "Small, frequent, everyone-every-day improvement." },
-        { "term": "CTQ", "def": "Critical-to-quality customer requirement (DMAIC Define)." },
-        { "term": "DPMO", "def": "Defects per million opportunities; 6σ = 3.4." },
-        { "term": "Price of non-conformance", "def": "Crosby’s cost of poor quality = internal + external failure." },
-        { "term": "Error budget", "def": "Allowed unreliability under an SLO; spend it, then freeze features." },
-        { "term": "Shift left", "def": "Move testing and security earlier, into design and coding." },
-        { "term": "Vital few", "def": "Juran’s Pareto idea: few causes drive most problems." }
-      ]
+        {
+          "term": "Common cause",
+          "def": "Random variation built into the system; fix the system."
+        },
+        {
+          "term": "Special cause",
+          "def": "Assignable event outside the limits; find and remove it."
+        },
+        {
+          "term": "Tampering",
+          "def": "Treating noise as signal, which increases variation."
+        },
+        {
+          "term": "Jidoka / andon",
+          "def": "Stop the line on an abnormality; build quality in."
+        },
+        {
+          "term": "Poka-yoke",
+          "def": "Mistake-proofing so the error cannot happen (Shingo)."
+        },
+        {
+          "term": "Kaizen",
+          "def": "Small, frequent, everyone-every-day improvement."
+        },
+        {
+          "term": "CTQ",
+          "def": "Critical-to-quality customer requirement (DMAIC Define)."
+        },
+        {
+          "term": "DPMO",
+          "def": "Defects per million opportunities; 6σ = 3.4."
+        },
+        {
+          "term": "Price of non-conformance",
+          "def": "Crosby’s cost of poor quality = internal + external failure."
+        },
+        {
+          "term": "Error budget",
+          "def": "Allowed unreliability under an SLO; spend it, then freeze features."
+        },
+        {
+          "term": "Shift left",
+          "def": "Move testing and security earlier, into design and coding."
+        },
+        {
+          "term": "Vital few",
+          "def": "Juran’s Pareto idea: few causes drive most problems."
+        }
+      ],
+      "slideImages": "assets/slides/qm/p{n}.webp",
+      "slideImageWidth": 2000,
+      "slideWidth": 960,
+      "slideAspect": 0.563
     },
     {
       "id": "vm",
@@ -269,7 +548,10 @@
         {
           "id": "vm-why",
           "title": "Why vendor management matters",
-          "pages": [3, 8],
+          "pages": [
+            3,
+            8
+          ],
           "topic": "Why It Matters (Opening)",
           "points": [
             "**Opening poll, CrowdStrike–Delta (19 Jul 2024):** ~7,000 flights cancelled, ~1.3M customers, ~$500M loss. What can Delta recover? **Answer: C, low single-digit millions**, because the contract caps liability.",
@@ -280,7 +562,10 @@
         {
           "id": "vm-tce",
           "title": "§1 Make, buy or ally: transaction-cost economics",
-          "pages": [10, 13],
+          "pages": [
+            10,
+            13
+          ],
           "topic": "Make or Buy (Transaction Cost Economics)",
           "points": [
             "**Three drivers (Williamson):** **asset specificity** (investments worth little outside the relationship), **uncertainty** (hard to specify, measure or foresee), **frequency** (how often it recurs). The higher they are, the more you move from market → hybrid → hierarchy.",
@@ -292,7 +577,10 @@
         {
           "id": "vm-kraljic",
           "title": "§2 Segment vendors: the Kraljic matrix",
-          "pages": [15, 17],
+          "pages": [
+            15,
+            17
+          ],
           "topic": "Segmentation with the Kraljic Matrix",
           "points": [
             "Axes: **profit impact** × **supply risk** (few suppliers, scarcity, switching cost). Kraljic (1983), HBR: “Purchasing must become supply management.”",
@@ -300,19 +588,47 @@
           ],
           "table": {
             "caption": "Kraljic quadrants",
-            "head": ["Quadrant", "Impact / risk", "Strategy", "Examples (bank CPO answer key)"],
+            "head": [
+              "Quadrant",
+              "Impact / risk",
+              "Strategy",
+              "Examples (bank CPO answer key)"
+            ],
             "rows": [
-              ["Leverage", "High / Low", "Exploit buying power: tenders, e-auctions, volume", "Laptops for 12,000 staff; security guards"],
-              ["Strategic", "High / High", "Partner long term; plan the exit before signing", "Core banking; public cloud; ATM cash logistics (debatable)"],
-              ["Bottleneck", "Low / High", "Secure supply: buffer, second source, redesign the need", "HSMs for card payments; CTS cheque printing"],
-              ["Non-critical", "Low / Low", "Simplify and automate: catalogues, p-cards, GeM", "Branch housekeeping; stationery"]
+              [
+                "Leverage",
+                "High / Low",
+                "Exploit buying power: tenders, e-auctions, volume",
+                "Laptops for 12,000 staff; security guards"
+              ],
+              [
+                "Strategic",
+                "High / High",
+                "Partner long term; plan the exit before signing",
+                "Core banking; public cloud; ATM cash logistics (debatable)"
+              ],
+              [
+                "Bottleneck",
+                "Low / High",
+                "Secure supply: buffer, second source, redesign the need",
+                "HSMs for card payments; CTS cheque printing"
+              ],
+              [
+                "Non-critical",
+                "Low / Low",
+                "Simplify and automate: catalogues, p-cards, GeM",
+                "Branch housekeeping; stationery"
+              ]
             ]
           }
         },
         {
           "id": "vm-select",
           "title": "§3 Vendor selection and total cost of ownership",
-          "pages": [20, 23],
+          "pages": [
+            20,
+            23
+          ],
           "topic": "Vendor Selection and Total Cost of Ownership",
           "points": [
             "**Dickson (1966):** 273 purchasing managers, 23 criteria. Top 8: Quality 3.51 · Delivery 3.42 · Performance history 3.00 · Warranties 2.85 · Production capacity 2.78 · **Price 2.76 (#6)** · Technical capability 2.55 · Financial position 2.51. **Weber, Current & Benton (1991):** 74 studies; price, delivery and quality are traded off together, especially under JIT.",
@@ -324,7 +640,10 @@
         {
           "id": "vm-contract",
           "title": "§4 The contract: stack, clauses, liability, Indian law",
-          "pages": [26, 30],
+          "pages": [
+            26,
+            30
+          ],
           "topic": "The Contract Stack and Clauses that Bite",
           "points": [
             "**Contract stack:** NDA/LOI → **MSA** (umbrella terms: liability, IP, data, termination, disputes; negotiated once) → **SOWs** (scope, deliverables, timeline, price, acceptance) → **Schedules** (SLAs, pricing, security, exit plan) → change requests. State the **order of precedence**. Example: Intelenet–Apria MSA (2009), ~120 pages, on SEC EDGAR.",
@@ -334,22 +653,57 @@
           ],
           "table": {
             "caption": "Red flags → better asks",
-            "head": ["Clause", "Why it hurts", "Better ask"],
+            "head": [
+              "Clause",
+              "Why it hurts",
+              "Better ask"
+            ],
             "rows": [
-              ["Auto-renewal", "5-year lock-in renewing for 5 more", "1–3 yr renewals at buyer’s option; 90-day reminder"],
-              ["Fees", "Unilateral, uncapped rises (AT&T/VMware)", "Fixed for term, then CPI cap (≤ 5%) + exit right"],
-              ["Credits", "2% sole remedy; 99.0% allows ~7 h/month down", "99.9%+, tiered credits, chronic-failure exit"],
-              ["Liability", "One month’s fees, no carve-outs", "12 months’ fees; data-breach super-cap; uncapped gross negligence"],
-              ["Subcontracting", "Data moves to unknown fourth parties", "Prior written consent; flow-down; vendor stays liable"],
-              ["Exit", "7 days, proprietary format, then deletion", "6–12 months’ assistance; open formats"],
-              ["Disputes", "Foreign law and courts", "Indian law; arbitration seated in India"]
+              [
+                "Auto-renewal",
+                "5-year lock-in renewing for 5 more",
+                "1–3 yr renewals at buyer’s option; 90-day reminder"
+              ],
+              [
+                "Fees",
+                "Unilateral, uncapped rises (AT&T/VMware)",
+                "Fixed for term, then CPI cap (≤ 5%) + exit right"
+              ],
+              [
+                "Credits",
+                "2% sole remedy; 99.0% allows ~7 h/month down",
+                "99.9%+, tiered credits, chronic-failure exit"
+              ],
+              [
+                "Liability",
+                "One month’s fees, no carve-outs",
+                "12 months’ fees; data-breach super-cap; uncapped gross negligence"
+              ],
+              [
+                "Subcontracting",
+                "Data moves to unknown fourth parties",
+                "Prior written consent; flow-down; vendor stays liable"
+              ],
+              [
+                "Exit",
+                "7 days, proprietary format, then deletion",
+                "6–12 months’ assistance; open formats"
+              ],
+              [
+                "Disputes",
+                "Foreign law and courts",
+                "Indian law; arbitration seated in India"
+              ]
             ]
           }
         },
         {
           "id": "vm-negotiation",
           "title": "Negotiation: BATNA and ZOPA",
-          "pages": [32, 35],
+          "pages": [
+            32,
+            35
+          ],
           "topic": "Negotiation (BATNA and ZOPA)",
           "points": [
             "**BATNA = Best Alternative To a Negotiated Agreement**, the “most important thing”. Steps: list alternatives → value each → pick the best (your BATNA) → set the lowest-valued deal you will accept.",
@@ -360,7 +714,10 @@
         {
           "id": "vm-pricing",
           "title": "§5 Pricing models and SLAs that bite",
-          "pages": [37, 39],
+          "pages": [
+            37,
+            39
+          ],
           "topic": "Pricing Models and SLA Design",
           "points": [
             "**Risk line (buyer → vendor):** Time & materials / cost-plus → Fixed capacity → Fixed price / unit rate → Outcome / gain-share.",
@@ -369,20 +726,53 @@
           ],
           "table": {
             "caption": "Pricing models",
-            "head": ["Model", "Best when", "Watch out", "Activity match"],
+            "head": [
+              "Model",
+              "Best when",
+              "Watch out",
+              "Activity match"
+            ],
             "rows": [
-              ["Time & materials", "Scope unclear or evolving", "No efficiency incentive; cap it", "Start-up MVP, weekly changes"],
-              ["Fixed capacity", "Steady demand; buyer directs", "Under-use is your cost; co-employment", "GCC: 30 Java devs, 3 years"],
-              ["Fixed price / unit rate", "Well-defined scope", "Vendor pads risk; change requests", "Repaint 40 branches"],
-              ["Unit rate + minimum", "Volume swings", "Floor protects vendor", "Canteen, attendance ±30%"],
-              ["Outcome / gain-share", "Measurable outcome vendor can influence", "Hard to measure; needs trust & data", "Loan collection; engines ‘just work’ (pay per hour)"]
+              [
+                "Time & materials",
+                "Scope unclear or evolving",
+                "No efficiency incentive; cap it",
+                "Start-up MVP, weekly changes"
+              ],
+              [
+                "Fixed capacity",
+                "Steady demand; buyer directs",
+                "Under-use is your cost; co-employment",
+                "GCC: 30 Java devs, 3 years"
+              ],
+              [
+                "Fixed price / unit rate",
+                "Well-defined scope",
+                "Vendor pads risk; change requests",
+                "Repaint 40 branches"
+              ],
+              [
+                "Unit rate + minimum",
+                "Volume swings",
+                "Floor protects vendor",
+                "Canteen, attendance ±30%"
+              ],
+              [
+                "Outcome / gain-share",
+                "Measurable outcome vendor can influence",
+                "Hard to measure; needs trust & data",
+                "Loan collection; engines ‘just work’ (pay per hour)"
+              ]
             ]
           }
         },
         {
           "id": "vm-govern",
           "title": "§6 Govern and exit: accountability stays with you",
-          "pages": [41, 43],
+          "pages": [
+            41,
+            43
+          ],
           "topic": "Governance, Regulation and Exit",
           "points": [
             "**Three tiers:** strategic (quarterly/annual, executive sponsors) · tactical (monthly service review) · operational (daily/weekly). Disputes climb **team → joint steering committee → executives → mediation/arbitration**. Quarterly scorecard: quality, delivery/SLA, cost & invoicing accuracy, responsiveness, risk & compliance, innovation. A red rating → action plan with an owner and a date.",
@@ -393,26 +783,52 @@
         {
           "id": "vm-cases",
           "title": "§7 Case clinic",
-          "pages": [46, 51],
+          "pages": [
+            46,
+            51
+          ],
           "topic": "Case Clinic",
           "points": [
             "Clinic steps: **Segment** (Kraljic before and after) → **Diagnose** (selection, contract, pricing, governance or exit?) → **Redraft** (the one clause that would have changed it) → **Recommend** (stay, renegotiate, dual-source or exit)."
           ],
           "table": {
             "caption": "Case cards",
-            "head": ["Case", "What happened", "Lesson"],
+            "head": [
+              "Case",
+              "What happened",
+              "Lesson"
+            ],
             "rows": [
-              ["KFC UK – DHL (2018)", "DHL replaced Bidvest; one DC at Rugby; Feb 2018 cut-over failed; over half of ~900 stores shut; Bidvest back for ~350", "Transition is the riskiest phase: pilot, run in parallel, keep exit cooperation"],
-              ["Infosys – Income Tax (2021)", "₹4,242 cr deal (2019); launched 7 Jun 2021; outage 21–22 Aug; CEO summoned; ₹164.5 cr paid by June", "Acceptance criteria, load tests, staged go-live; milestone payments keep leverage"],
-              ["IndiGo – Pratt & Whitney", "GTF powder-metal defect (Jul 2023); 70+ jets grounded; IAE compensation deal (Jun 2024)", "With bottleneck suppliers, negotiate inside the relationship, if the contract gives leverage"],
-              ["TSB – SABIS (2018)", "5.2M customers migrated; platform failed; £32.7M redress; £48.65M FCA+PRA fines (2022); ex-CIO fined 2024", "Regulators judge the buyer; oversight is non-delegable"]
+              [
+                "KFC UK – DHL (2018)",
+                "DHL replaced Bidvest; one DC at Rugby; Feb 2018 cut-over failed; over half of ~900 stores shut; Bidvest back for ~350",
+                "Transition is the riskiest phase: pilot, run in parallel, keep exit cooperation"
+              ],
+              [
+                "Infosys – Income Tax (2021)",
+                "₹4,242 cr deal (2019); launched 7 Jun 2021; outage 21–22 Aug; CEO summoned; ₹164.5 cr paid by June",
+                "Acceptance criteria, load tests, staged go-live; milestone payments keep leverage"
+              ],
+              [
+                "IndiGo – Pratt & Whitney",
+                "GTF powder-metal defect (Jul 2023); 70+ jets grounded; IAE compensation deal (Jun 2024)",
+                "With bottleneck suppliers, negotiate inside the relationship, if the contract gives leverage"
+              ],
+              [
+                "TSB – SABIS (2018)",
+                "5.2M customers migrated; platform failed; £32.7M redress; £48.65M FCA+PRA fines (2022); ex-CIO fined 2024",
+                "Regulators judge the buyer; oversight is non-delegable"
+              ]
             ]
           }
         },
         {
           "id": "vm-takeaways",
           "title": "Takeaways: six clauses to carry out of the room",
-          "pages": [52, 53],
+          "pages": [
+            52,
+            53
+          ],
           "topic": "Case Clinic",
           "points": [
             "§1 **Decide what not to buy** (keep what is specific, uncertain, core) · §2 **Segment, then negotiate** (Kraljic) · §3 **Select on total cost** (fix weights before bids; price the exit) · §4 **Read the liability clause first** · §5 **Make incentives do the work** (pricing and SLAs are management systems) · §6 **Plan the exit on day one**: you can outsource work, never accountability."
@@ -420,29 +836,118 @@
         }
       ],
       "formulas": [
-        { "name": "Weighted vendor score", "expr": "Score = Σ (weightᵢ × scoreᵢ), with Σ weights = 1", "example": "Vendor X, CFO weights: .4(6)+.15(9)+.15(9)+.1(5)+.2(7) = 7.00" },
-        { "name": "Total cost of ownership", "expr": "TCO = acquisition + ownership + exit", "example": "Compare any renewal quote with the $40–50M switching cost" },
-        { "name": "Allowed downtime", "expr": "Downtime = (1 − availability) × 720 h (30-day month)", "example": "99.5% → 0.005 × 720 = 3.6 h" },
-        { "name": "ZOPA", "expr": "ZOPA = [seller’s worst case, buyer’s worst case], if the seller’s floor ≤ the buyer’s ceiling", "example": "Seller $8M, buyer $11M → ZOPA $8M–$11M; seller $12M, buyer $10M → none" },
-        { "name": "Annualised price change", "expr": "Ratio = (new total / new years) ÷ (old total / old years)", "example": "($25M/2) ÷ ($5M/5) = 12.5× per year" },
-        { "name": "Chronic SLA failure", "expr": "Default if major credits in 3 consecutive months OR 5 in any 12", "example": "Mar–Apr–May credits → termination right" },
-        { "name": "MSMED payment rule", "expr": "Pay micro & small suppliers within 45 days (15 if no agreement)", "example": "Miss it → lose the s.43B(h) tax deduction" }
+        {
+          "name": "Weighted vendor score",
+          "expr": "Score = Σ (weightᵢ × scoreᵢ), with Σ weights = 1",
+          "example": "Vendor X, CFO weights: .4(6)+.15(9)+.15(9)+.1(5)+.2(7) = 7.00"
+        },
+        {
+          "name": "Total cost of ownership",
+          "expr": "TCO = acquisition + ownership + exit",
+          "example": "Compare any renewal quote with the $40–50M switching cost"
+        },
+        {
+          "name": "Allowed downtime",
+          "expr": "Downtime = (1 − availability) × 720 h (30-day month)",
+          "example": "99.5% → 0.005 × 720 = 3.6 h"
+        },
+        {
+          "name": "ZOPA",
+          "expr": "ZOPA = [seller’s worst case, buyer’s worst case], if the seller’s floor ≤ the buyer’s ceiling",
+          "example": "Seller $8M, buyer $11M → ZOPA $8M–$11M; seller $12M, buyer $10M → none"
+        },
+        {
+          "name": "Annualised price change",
+          "expr": "Ratio = (new total / new years) ÷ (old total / old years)",
+          "example": "($25M/2) ÷ ($5M/5) = 12.5× per year"
+        },
+        {
+          "name": "Chronic SLA failure",
+          "expr": "Default if major credits in 3 consecutive months OR 5 in any 12",
+          "example": "Mar–Apr–May credits → termination right"
+        },
+        {
+          "name": "MSMED payment rule",
+          "expr": "Pay micro & small suppliers within 45 days (15 if no agreement)",
+          "example": "Miss it → lose the s.43B(h) tax deduction"
+        }
       ],
-      "downtime": [["99%", "7.2 hours"], ["99.5%", "3.6 hours"], ["99.9%", "43 minutes"], ["99.95%", "22 minutes"], ["99.99%", "4.3 minutes"]],
+      "downtime": [
+        [
+          "99%",
+          "7.2 hours"
+        ],
+        [
+          "99.5%",
+          "3.6 hours"
+        ],
+        [
+          "99.9%",
+          "43 minutes"
+        ],
+        [
+          "99.95%",
+          "22 minutes"
+        ],
+        [
+          "99.99%",
+          "4.3 minutes"
+        ]
+      ],
       "concepts": [
-        { "term": "Asset specificity", "def": "Investment worth little outside this relationship." },
-        { "term": "Hybrid (ally)", "def": "Long-term contracts, alliances, JVs between make and buy." },
-        { "term": "Bottleneck item", "def": "Low profit impact, high supply risk; secure supply." },
-        { "term": "QCBS vs L1", "def": "Quality-and-cost-based selection vs lowest bidder." },
-        { "term": "Winner’s curse", "def": "Too-low bids return as change requests." },
-        { "term": "MSA / SOW", "def": "Umbrella legal terms / per-project scope, price, acceptance." },
-        { "term": "Carve-out", "def": "Uncapped liability, e.g. gross negligence, data breach." },
-        { "term": "BATNA", "def": "Best alternative to a negotiated agreement; your walk-away." },
-        { "term": "ZOPA", "def": "Zone of possible agreement: overlap of settlement ranges." },
-        { "term": "Watermelon SLA", "def": "Green metrics outside, red experience inside." },
-        { "term": "Earn-back", "def": "Credits returned if performance recovers." },
-        { "term": "Change of control", "def": "Right to renegotiate or exit if the vendor is acquired." }
-      ]
+        {
+          "term": "Asset specificity",
+          "def": "Investment worth little outside this relationship."
+        },
+        {
+          "term": "Hybrid (ally)",
+          "def": "Long-term contracts, alliances, JVs between make and buy."
+        },
+        {
+          "term": "Bottleneck item",
+          "def": "Low profit impact, high supply risk; secure supply."
+        },
+        {
+          "term": "QCBS vs L1",
+          "def": "Quality-and-cost-based selection vs lowest bidder."
+        },
+        {
+          "term": "Winner’s curse",
+          "def": "Too-low bids return as change requests."
+        },
+        {
+          "term": "MSA / SOW",
+          "def": "Umbrella legal terms / per-project scope, price, acceptance."
+        },
+        {
+          "term": "Carve-out",
+          "def": "Uncapped liability, e.g. gross negligence, data breach."
+        },
+        {
+          "term": "BATNA",
+          "def": "Best alternative to a negotiated agreement; your walk-away."
+        },
+        {
+          "term": "ZOPA",
+          "def": "Zone of possible agreement: overlap of settlement ranges."
+        },
+        {
+          "term": "Watermelon SLA",
+          "def": "Green metrics outside, red experience inside."
+        },
+        {
+          "term": "Earn-back",
+          "def": "Credits returned if performance recovers."
+        },
+        {
+          "term": "Change of control",
+          "def": "Right to renegotiate or exit if the vendor is acquired."
+        }
+      ],
+      "slideImages": "assets/slides/vm/p{n}.webp",
+      "slideImageWidth": 2000,
+      "slideWidth": 960,
+      "slideAspect": 0.563
     }
   ]
 }

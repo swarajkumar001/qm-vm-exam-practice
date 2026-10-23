@@ -1834,7 +1834,7 @@
   var ZOOM_MIN = 0.25, ZOOM_MAX = 5;
   var pdfLibPromise = null;
   var pdfDocs = {};
-  var PV = { token: 0, task: null, zoom: 'fit', scale: 1, lastScale: 1, fallback: false, observer: null, resizeTimer: null };
+  var PV = { token: 0, task: null, zoom: 'fit', scale: 1, lastScale: 1, fallback: false, observer: null, resizeTimer: null, preloaded: {}, imgFailed: {} };
 
   function loadPdfJs() {
     if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
@@ -1883,12 +1883,26 @@
     el.textContent = p == null ? 'Loading slides…' : 'Loading slides… ' + p + '%';
   }
 
-  /** Warm the renderer and the deck in the background so "View slides" opens instantly. */
-  function prefetchSlides(deck) {
+  function slideImageUrl(deck, page) {
+    return deck && deck.slideImages ? deck.slideImages.replace('{n}', page) : null;
+  }
+
+  /** Start downloading one slide image (kept referenced so the browser doesn't drop the request). */
+  function preloadSlide(deck, page) {
+    var url = slideImageUrl(deck, page);
+    if (!url || page < 1 || page > (deck.pdfPages || 1) || PV.preloaded[url]) return;
+    var im = new Image();
+    im.decoding = 'async';
+    im.src = url;
+    PV.preloaded[url] = im;
+  }
+
+  /** Intent prefetch: hovering / focusing / touching "View slides" fetches that slide image (~80KB). */
+  function prefetchSlides(deck, page) {
     if (!deck) return;
     var c = navigator.connection;
-    if (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))) return; // respect data saver / very slow links
-    getPdf(deck).catch(function () { /* the viewer reports errors when it is opened */ });
+    if (c && c.saveData) return; // respect data saver
+    if (deck.slideImages) preloadSlide(deck, page || 1);
   }
 
   function viewerDeck() {
@@ -1935,8 +1949,88 @@
     markViewingSection();
     if (!PV.fallback) {
       bindStage();
-      renderPdfPage();
+      renderSlide();
     }
+  }
+
+  function computeSlideScale(deck, stage) {
+    var pad = 24;
+    var availW = Math.max(120, stage.clientWidth - pad);
+    var availH = Math.max(120, stage.clientHeight - pad);
+    var bw = deck.slideWidth || 960;
+    var bh = bw * (deck.slideAspect || 0.5625);
+    var s = PV.zoom === 'fit' ? Math.min(availW / bw, availH / bh) : PV.zoom === 'width' ? availW / bw : PV.scale;
+    return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, s));
+  }
+
+  /**
+   * Show the current slide. Primary path: a pre-rendered image of just this page (~80KB), so the
+   * first slide appears in about a second even on slow links. PDF.js is used only when the user
+   * zooms past the image's resolution, or as a fallback if an image is missing.
+   */
+  function renderSlide() {
+    var stage = document.getElementById('pvStage');
+    var holder = document.getElementById('pvCanvas');
+    var v = S.revViewer, deck = viewerDeck();
+    if (!stage || !holder || !v || !deck) return;
+    if (!deck.slideImages || PV.imgFailed[deck.id]) { renderPdfPage(); return; }
+    var url = slideImageUrl(deck, v.page);
+    var cur = holder.firstElementChild;
+    if (cur && cur.tagName === 'IMG' && cur.getAttribute('data-src') === url) { PV.token++; layoutSlide(); return; }
+    var token = ++PV.token;
+    var im = PV.preloaded[url] && PV.preloaded[url].complete && PV.preloaded[url].naturalWidth ? null : true;
+    if (im) {
+      stage.classList.add('is-loading');
+      var t = document.getElementById('pvLoadText');
+      if (t) t.textContent = 'Loading slide…';
+    }
+    var img = new Image();
+    img.decoding = 'async';
+    img.className = 'pv-img';
+    img.draggable = false;
+    img.alt = deck.title + ', slide ' + v.page + ' of ' + (deck.pdfPages || '?');
+    img.setAttribute('data-src', url);
+    img.onload = function () {
+      if (token !== PV.token) return;
+      // size it BEFORE inserting: a full-size (2000px) image would flash a scrollbar and the fit
+      // would be computed 15px too narrow
+      layoutSlide(img);
+      holder.innerHTML = '';
+      holder.appendChild(img);
+      stage.classList.remove('is-loading');
+      layoutSlide();
+      [1, -1, 2].forEach(function (d) { preloadSlide(deck, v.page + d); });
+    };
+    img.onerror = function () {
+      if (token !== PV.token) return;
+      if (window.console) console.warn('[ExamPrep] slide image missing, rendering from the PDF instead:', url);
+      PV.imgFailed[deck.id] = true;
+      renderPdfPage();
+    };
+    img.src = url;
+  }
+
+  /** Size the slide image for the current zoom; instant, no download. */
+  function layoutSlide(detached) {
+    var stage = document.getElementById('pvStage');
+    var holder = document.getElementById('pvCanvas');
+    var deck = viewerDeck();
+    var img = detached || (holder && holder.firstElementChild);
+    if (!stage || !deck || !img || img.tagName !== 'IMG') return;
+    var scale = computeSlideScale(deck, stage);
+    PV.lastScale = scale;
+    var w = Math.round((deck.slideWidth || 960) * scale);
+    var ratio = img.naturalWidth ? img.naturalHeight / img.naturalWidth : (deck.slideAspect || 0.5625);
+    var h = Math.round(w * ratio);
+    img.style.width = w + 'px';
+    img.style.height = h + 'px';
+    if (detached) return; // just pre-sized; the real layout runs once it is in the page
+    stage.classList.toggle('is-zoomed', w > stage.clientWidth || h > stage.clientHeight);
+    var pctEl = document.getElementById('pvPct');
+    if (pctEl) pctEl.textContent = Math.round(scale * 100) + '%';
+    // zoomed past the image's pixels: redraw this page sharply from the PDF (the image stays meanwhile)
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
+    if (w * dpr > (deck.slideImageWidth || 2000) * 1.05) renderPdfPage({ quiet: true });
   }
 
   /** Update toolbar state after a page change without rebuilding the viewer. */
@@ -1961,13 +2055,13 @@
     });
   }
 
-  function renderPdfPage() {
+  function renderPdfPage(opts) {
+    var quiet = !!(opts && opts.quiet); // quiet: an image is already showing, just upgrade it
     var stage = document.getElementById('pvStage');
     var v = S.revViewer, deck = viewerDeck();
     if (!stage || !v || !deck) return;
     var token = ++PV.token;
-    stage.classList.add('is-loading');
-    showLoadProgress(deck.id);
+    if (!quiet) { stage.classList.add('is-loading'); showLoadProgress(deck.id); }
     getPdf(deck).then(function (pdf) {
       if (token !== PV.token) return null;
       if (deck.pdfPages !== pdf.numPages) { deck.pdfPages = pdf.numPages; updateViewerChrome(); }
@@ -2010,6 +2104,7 @@
       });
     }).catch(function (err) {
       if (err && (err.name === 'RenderingCancelledException' || /cancel/i.test(err.message || ''))) return;
+      if (quiet) return; // keep showing the image
       if (token !== PV.token && pdfLibPromise) return;
       if (window.console) console.warn('[ExamPrep] slide renderer failed, falling back to the browser viewer:', err);
       PV.fallback = true;
@@ -2027,7 +2122,7 @@
         if (Math.abs(r.width - lastW) < 2 && Math.abs(r.height - lastH) < 2) return;
         lastW = r.width; lastH = r.height;
         clearTimeout(PV.resizeTimer);
-        PV.resizeTimer = setTimeout(function () { if (PV.zoom !== 'custom') renderPdfPage(); }, 120);
+        PV.resizeTimer = setTimeout(function () { if (PV.zoom !== 'custom') renderSlide(); }, 120);
       });
       PV.observer.observe(stage);
     }
@@ -2066,7 +2161,7 @@
     }
     PV.dprValue = dpr;
     PV.dprMq = window.matchMedia('(resolution: ' + dpr + 'dppx)');
-    PV.dprHandler = function () { PV.dprMq = null; if (document.getElementById('pvStage')) renderPdfPage(); };
+    PV.dprHandler = function () { PV.dprMq = null; if (document.getElementById('pvStage')) renderSlide(); };
     if (PV.dprMq.addEventListener) PV.dprMq.addEventListener('change', PV.dprHandler);
     else if (PV.dprMq.addListener) PV.dprMq.addListener(PV.dprHandler);
   }
@@ -2085,7 +2180,7 @@
       PV.zoom = 'custom';
     }
     updateViewerChrome();
-    renderPdfPage();
+    renderSlide();
   }
 
   /** Highlight the note section whose pages contain the PDF page being shown. */
@@ -2110,7 +2205,7 @@
     if (wasOpen) {
       S.revViewer.page = page;
       if (PV.fallback || !document.getElementById('pvStage')) renderRevisionViewer();
-      else { updateViewerChrome(); renderPdfPage(); markViewingSection(); }
+      else { updateViewerChrome(); renderSlide(); markViewingSection(); }
       return;
     }
     renderRevision();
@@ -2218,11 +2313,6 @@
 
     box.innerHTML = searchBar + '<div class="rev-layout' + (S.revSplit ? ' compact' : '') + '">' + toc + '<div class="rev-main">' + (empty || (overview + secHtml + formulaHtml + conceptHtml)) + '</div></div>';
     markViewingSection();
-    // desktop: quietly warm this deck's slides a moment after the notes appear
-    if (isWideScreen() && !pdfDocs[deck.id]) {
-      clearTimeout(PV.prefetchTimer);
-      PV.prefetchTimer = setTimeout(function () { if (S.route.name === 'revision' && S.revDeck === deck.id) prefetchSlides(deck); }, 1200);
-    }
   }
 
   function updateRevisionProgress() {
@@ -2685,7 +2775,7 @@
     var warm = function (e) {
       var b = e.target && e.target.closest && e.target.closest('[data-action="rev-view"]');
       if (!b || !S.rev) return;
-      prefetchSlides(S.rev.decks.filter(function (d) { return d.id === b.getAttribute('data-deck'); })[0]);
+      prefetchSlides(S.rev.decks.filter(function (d) { return d.id === b.getAttribute('data-deck'); })[0], Number(b.getAttribute('data-page')) || 1);
     };
     app.addEventListener('pointerover', warm);
     app.addEventListener('focusin', warm);
@@ -2715,7 +2805,7 @@
         if (S.revViewer && isWideScreen() !== S.revSplit) renderRevision();
         else if (S.revSplit) sizeWorkspace();
         // browser zoom changes the pixel ratio: redraw so slides stay sharp
-        if (S.revViewer && PV.dprValue && PV.dprValue !== (window.devicePixelRatio || 1) && document.getElementById('pvStage')) renderPdfPage();
+        if (S.revViewer && PV.dprValue && PV.dprValue !== (window.devicePixelRatio || 1) && document.getElementById('pvStage')) renderSlide();
       }, 150);
     });
     document.addEventListener('visibilitychange', function () { if (document.hidden) save(); });
